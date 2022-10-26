@@ -146,7 +146,9 @@ uint32 FLiveLinkAugmentaSource::Run()
 				{
 					if (ReceivedDataSize > 0)
 					{
-						UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received Augmenta message size %d"), ReceivedDataSize);
+						//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received Augmenta message size %d"), ReceivedDataSize);
+
+						HandleOSCPacket(OSCPP::Server::Packet(ReceiveBuffer.GetData(), ReceivedDataSize));
 
 						/* TEST WITH CUSTOM POINT 3D FROM CHATAIGNE UDP 
 						if (ReceivedDataSize >= SceneDataSize) {
@@ -308,6 +310,84 @@ void FLiveLinkAugmentaSource::Send(FLiveLinkFrameDataStruct* FrameDataToSend, FN
 	}
 
 	Client->PushSubjectFrameData_AnyThread({ SourceGuid, SubjectName }, MoveTemp(*FrameDataToSend));
+}
+
+
+void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packet)
+{
+	if (Packet.isBundle()) {
+
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received OSC bundle (should not happen)."));
+
+		// Convert to bundle
+		//OSCPP::Server::Bundle Bundle(Packet);
+
+		// Print the time
+		//std::cout << "#bundle " << bundle.time() << std::endl;
+		//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received OSC bundle %d."), Bundle.time());
+
+		//// Get packet stream
+		//OSCPP::Server::PacketStream packets(Bundle.packets());
+
+		//// Iterate over all the packets and call handlePacket recursively.
+		//// Warning: Might lead to stack overflow!
+		//while (!packets.atEnd()) {
+		//	HandlePacket(packets.next());
+		//}
+	} else {
+
+		// Convert to message
+		OSCPP::Server::Message msg(Packet);
+
+		// Get argument stream
+		OSCPP::Server::ArgStream args(msg.args());
+
+		const char* address = msg.address();
+
+		//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received OSC message %s."), UTF8_TO_TCHAR(address));
+
+		if (msg == "/scene") {
+			const int frame = args.int32();
+			const int objectCount = args.int32();
+			const float width = args.float32();
+			const float height = args.float32();
+
+			UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received Scene. Frame = %d, ObjectCount = %d, Width = %f, Height = %f."), frame, objectCount, width, height);
+		}
+		//// Directly compare message address to string with operator==.
+		//// For handling larger address spaces you could use e.g. a
+		//// dispatch table based on std::unordered_map.
+		//if (msg == "/s_new") {
+		//	const char* name = args.string();
+		//	const int32_t id = args.int32();
+		//	std::cout << "/s_new" << " "
+		//		<< name << " "
+		//		<< id << " ";
+		//	// Get the params array as an ArgStream
+		//	OSCPP::Server::ArgStream params(args.array());
+		//	while (!params.atEnd()) {
+		//		const char* param = params.string();
+		//		const float value = params.float32();
+		//		std::cout << param << ":" << value << " ";
+		//	}
+		//	std::cout << std::endl;
+		//}
+		//else if (msg == "/n_set") {
+		//	const int32_t id = args.int32();
+		//	const char* key = args.string();
+		//	// Numeric arguments are converted automatically
+		//	// to float32 (e.g. from int32).
+		//	const float value = args.float32();
+		//	std::cout << "/n_set" << " "
+		//		<< id << " "
+		//		<< key << " "
+		//		<< value << std::endl;
+		//}
+		//else {
+		//	// Simply print unknown messages
+		//	UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message."));
+		//}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

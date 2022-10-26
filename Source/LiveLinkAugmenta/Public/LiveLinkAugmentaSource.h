@@ -18,6 +18,8 @@
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
 
+#include "oscpp/server.hpp"
+
 struct ULiveLinkAugmentaSettings;
 
 class ILiveLinkClient;
@@ -133,7 +135,10 @@ private:
 	// Augmenta objects
 	TMap<int, FLiveLinkAugmentaObject> AugmentaObjects;
 
-	//Subjects
+	// Subjects
 	TArray<FName> DesiredSubjects;
 	TArray<FName> UndesiredSubjects;
+
+	// OSC Parsing
+	void HandleOSCPacket(const OSCPP::Server::Packet& Packet);
 };
