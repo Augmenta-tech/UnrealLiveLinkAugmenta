@@ -25,4 +25,8 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaConnectionSettings
 	/** Augmenta scene name */
 	UPROPERTY(EditAnywhere, Category = "Connection Settings")
 	FString SceneName = TEXT("AugmentaMain");
+
+	/** Time before a not updated object is removed */
+	UPROPERTY(EditAnywhere, Category = "Connection Settings")
+	float TimeoutDuration = 1;
 };

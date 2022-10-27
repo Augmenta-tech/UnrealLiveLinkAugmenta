@@ -128,6 +128,12 @@ private:
 	// Maximum rate at which to refresh the server
 	uint32 LocalUpdateRateInHz = 120;
 
+	// Conversion from meters to unreal units
+	const float MetersToUnrealUnits = 100.0f;
+
+	// Maximum inactive time before a point is removed
+	float TimeoutDuration;
+
 	// Augmenta scene parameters
 	FString SceneName;
 	FLiveLinkAugmentaScene AugmentaScene;
@@ -135,10 +141,21 @@ private:
 	// Augmenta objects
 	TMap<int, FLiveLinkAugmentaObject> AugmentaObjects;
 
+	// Augmenta video output
+	FLiveLinkAugmentaVideoOutput AugmentaVideoOutput;
+
 	// Subjects
-	TArray<FName> DesiredSubjects;
-	TArray<FName> UndesiredSubjects;
+	//TArray<FName> DesiredSubjects;
+	//TArray<FName> UndesiredSubjects;
 
 	// OSC Parsing
 	void HandleOSCPacket(const OSCPP::Server::Packet& Packet);
+	void ReadAugmentaObjectFromOSC(FLiveLinkAugmentaObject* AugmentaObject, OSCPP::Server::ArgStream* Args);
+	void AddAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
+	void UpdateAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
+	void RemoveAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
+	void UpdateAugmentaObjectSubject(FLiveLinkAugmentaObject AugmentaObject);
+	void RemoveInactiveObjects();
+
+	TArray<int> ObjectsToRemove;
 };

@@ -22,19 +22,15 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaObject
 		int32 Id;
 
 	/**
-	 * The Ordered Id for each object.
+	 * The ordered Id for each object.
 	 * (ex: if 3 objects are on stage, 43rd object still present has oid=2).
 	 */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		int32 Oid;
 
-	/** The Alive time in seconds. */
+	/** The alive time in seconds. */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		float Age;
-
-	/** The absolute position of the object. */
-	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
-		FVector Position;
 
 	/** The position projected to the ground (normalized). */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
@@ -44,11 +40,11 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaObject
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		FVector2D Velocity;
 
-	/** The CCW rotation w.r.t the horizontal axis (right). Range is 0 to 360. */
+	/** The object rotation w.r.t the horizontal axis (right). Range is 0 to 360. */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		float Orientation;
 
-	/** The center co-ordinate of the bounding box (normalized). */
+	/** The center coordinate of the bounding box (normalized). */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		FVector2D BoundingRectPos;
 
@@ -56,13 +52,29 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaObject
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		FVector2D BoundingRectSize;
 
-	/** The CCW rotation of the bounding box w.r.t the horizontal axis (right). */
+	/** The rotation of the bounding box w.r.t the horizontal axis (right). */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		float BoundingRectRotation;
 
-	/** The Height of the Object (in m) (absolute). */
+	/** The height of the Object (in m) (absolute). */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		float Height;
+
+	/** The time at which the object was last updated. */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
+		FDateTime LastUpdateTime;
+
+	/** The absolute position of the object. */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object|Transform")
+		FVector Position;
+
+	/** The absolute rotation of the object. */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object|Transform")
+		FQuat Rotation;
+
+	/** The local scale of the object. */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object|Transform")
+		FVector Scale;
 };
 
 
@@ -76,23 +88,27 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaScene
 
 	/** The Time in frame number. */
 	UPROPERTY(BlueprintReadOnly, DisplayName = "Frame", Category = "Augmenta|Scene")
-		int32 CurrentTime;
+		int32 Frame;
 
 	/** The number of objects in the scene. */
 	UPROPERTY(BlueprintReadOnly, DisplayName = "ObjectCount", Category = "Augmenta|Scene")
-		int32 NumPeople;
+		int32 ObjectCount;
 
 	/** The scene size in meters. */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Scene")
 		FVector2D Size;
 
 	/** The scene absolute position. */
-	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Scene")
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Scene|Transform")
 		FVector Position;
 
 	/** The scene rotation. */
-	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Scene")
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Scene|Transform")
 		FQuat Rotation;
+
+	/** The scene scale along Unreal axis. */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Scene|Transform")
+		FVector Scale;
 };
 
 /**
@@ -114,4 +130,16 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaVideoOutput
 	/** The resolution in pixels. */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|VideoOutput")
 		FIntPoint Resolution;
+
+	/** The video output absolute position. */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|VideoOutput|Transform")
+		FVector Position;
+
+	/** The video output rotation. */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|VideoOutput|Transform")
+		FQuat Rotation;
+
+	/** The video output scale along Unreal axis. */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|VideoOutput|Transform")
+		FVector Scale;
 };
