@@ -2,6 +2,8 @@
 
 This repo contains the Unreal Live Link Augmenta Plugin only. It is currently compiled with Unreal version **5.0**.
 
+An example project using this plugin can be found [here](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo).
+
 ## Installation
 
 1. Close your Unreal project.
