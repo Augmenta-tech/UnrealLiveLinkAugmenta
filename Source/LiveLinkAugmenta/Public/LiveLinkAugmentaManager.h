@@ -71,6 +71,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Augmenta|Data")
 	TMap<int, FLiveLinkAugmentaObject> AugmentaObjects;
 
+	//Augmenta video output data
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Augmenta|Data")
+	FLiveLinkAugmentaVideoOutput AugmentaVideoOutput;
+
 private:
 
 	FLiveLinkAugmentaSource* LiveLinkAugmentaSource;

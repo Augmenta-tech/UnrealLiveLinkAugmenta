@@ -19,6 +19,22 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Augmenta")
 	FString SceneName;
 
+	/** Time before a not updated object is removed */
+	UPROPERTY(EditAnywhere, Category = "Augmenta")
+	float TimeoutDuration = 1;
+
+	/** Use bounding box size as object scale */
+	UPROPERTY(EditAnywhere, Category = "Augmenta")
+	bool bApplyObjectScale = false;
+
+	/** Offset object position vertically according to its height  */
+	UPROPERTY(EditAnywhere, Category = "Augmenta")
+	bool bApplyObjectHeight = false;
+
+	/** Use centroid position as position instead of bounding box center when using scale */
+	UPROPERTY(EditAnywhere, Category = "Augmenta")
+	bool bOffsetObjectPositionOnCentroid = true;
+
 	/** Live Link source reference */
 	FLiveLinkAugmentaSource* SourceReference;
 };

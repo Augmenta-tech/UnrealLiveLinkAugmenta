@@ -60,6 +60,18 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaObject
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		float Height;
 
+	/** The highest point placement (normalized). */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
+		FVector2D Highest;
+
+	/** The distance of the object to the sensor (in m) (absolute). */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
+		float Distance;
+
+	/** The reflection value from a Lidar sensor. */
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
+		float Reflectivity;
+
 	/** The time at which the object was last updated. */
 	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		FDateTime LastUpdateTime;

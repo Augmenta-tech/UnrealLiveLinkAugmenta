@@ -20,7 +20,6 @@ FLiveLinkAugmentaSource::FLiveLinkAugmentaSource(const FLiveLinkAugmentaConnecti
 , Thread(nullptr)
 , LocalUpdateRateInHz(ConnectionSettings.LocalUpdateRateInHz)
 , SceneName(ConnectionSettings.SceneName)
-, TimeoutDuration(ConnectionSettings.TimeoutDuration)
 {
 	SourceStatus = LOCTEXT("SourceStatus_NoData", "No data");
 	SourceType = LOCTEXT("SourceType_Augmenta", "Augmenta");
@@ -84,11 +83,51 @@ void FLiveLinkAugmentaSource::ReceiveClient(ILiveLinkClient* InClient, FGuid InS
 
 void FLiveLinkAugmentaSource::InitializeSettings(ULiveLinkSourceSettings* Settings) {
 
-	ULiveLinkAugmentaSourceSettings* AugmentaSourceSettings = Cast<ULiveLinkAugmentaSourceSettings>(Settings);
+	// Save our source settings pointer so we can use it directly
+	SavedSourceSettings = Cast<ULiveLinkAugmentaSourceSettings>(Settings);
 
-	if (AugmentaSourceSettings != nullptr) {
-		AugmentaSourceSettings->SceneName = SceneName;
-		AugmentaSourceSettings->SourceReference = this;
+	if (SavedSourceSettings != nullptr) {
+		SavedSourceSettings->SceneName = SceneName;
+		SavedSourceSettings->SourceReference = this;
+
+		TimeoutDuration = SavedSourceSettings->TimeoutDuration;
+		bApplyObjectHeight = SavedSourceSettings->bApplyObjectHeight;
+		bApplyObjectScale = SavedSourceSettings->bApplyObjectScale;
+		bOffsetObjectPositionOnCentroid = SavedSourceSettings->bOffsetObjectPositionOnCentroid;
+	}
+}
+
+void FLiveLinkAugmentaSource::OnSettingsChanged(ULiveLinkSourceSettings* Settings, const FPropertyChangedEvent& PropertyChangedEvent)
+{
+	ILiveLinkSource::OnSettingsChanged(Settings, PropertyChangedEvent);
+
+	FProperty* MemberProperty = PropertyChangedEvent.MemberProperty;
+	FProperty* Property = PropertyChangedEvent.Property;
+	if (Property && MemberProperty && (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive))
+	{
+		ULiveLinkAugmentaSourceSettings* SourceSettings = Cast<ULiveLinkAugmentaSourceSettings>(Settings);
+		if (SavedSourceSettings != SourceSettings)
+		{
+			UE_LOG(LogLiveLinkAugmenta, Error, TEXT("LiveLinkAugmentaSource: OnSettingsChanged pointers do not match. This should never happen. Try recreating your source."));
+			return;
+		}
+
+		if (SourceSettings != nullptr)
+		{
+			//static FName NAME_TimeoutDuration = GET_MEMBER_NAME_CHECKED(ULiveLinkAugmentaSourceSettings, TimeoutDuration);
+			//static FName NAME_bApplyObjectHeight = GET_MEMBER_NAME_CHECKED(ULiveLinkAugmentaSourceSettings, bApplyObjectHeight);
+			//static FName NAME_bApplyObjectScale = GET_MEMBER_NAME_CHECKED(ULiveLinkAugmentaSourceSettings, bApplyObjectScale);
+			//static FName NAME_bOffsetObjectPositionOnCentroid = GET_MEMBER_NAME_CHECKED(ULiveLinkAugmentaSourceSettings, bOffsetObjectPositionOnCentroid);
+			//const FName PropertyName = Property->GetFName();
+			//const FName MemberPropertyName = MemberProperty->GetFName();
+
+			//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Setting changed. Property = %s. MemberProperty = %s"), *PropertyName.ToString(), *MemberPropertyName.ToString());
+		
+			TimeoutDuration = SavedSourceSettings->TimeoutDuration;
+			bApplyObjectHeight = SavedSourceSettings->bApplyObjectHeight;
+			bApplyObjectScale = SavedSourceSettings->bApplyObjectScale;
+			bOffsetObjectPositionOnCentroid = SavedSourceSettings->bOffsetObjectPositionOnCentroid;
+		}
 	}
 }
 
@@ -434,9 +473,15 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 		
 		} else if (msg == "/object/enter/extra") {
 		
+			UpdateAugmentaObjectExtraFromOSC(&args);
+
 		} else if (msg == "/object/update/extra") {
-		
+			
+			UpdateAugmentaObjectExtraFromOSC(&args);
+
 		} else if (msg == "/object/leave/extra") {
+
+			UpdateAugmentaObjectExtraFromOSC(&args);
 		
 		} else {
 			// Simply print unknown messages
@@ -463,19 +508,45 @@ void FLiveLinkAugmentaSource::ReadAugmentaObjectFromOSC(FLiveLinkAugmentaObject*
 	AugmentaObject->BoundingRectRotation = Args->float32();
 	AugmentaObject->Height = Args->float32();
 
-	AugmentaObject->Position.X = (.5f - AugmentaObject->Centroid.Y) * AugmentaScene.Size.Y * MetersToUnrealUnits;
-	AugmentaObject->Position.Y = (AugmentaObject->Centroid.X - .5f) * AugmentaScene.Size.X * MetersToUnrealUnits;
-	AugmentaObject->Position.Z = 0;
+	if (bApplyObjectScale && !bOffsetObjectPositionOnCentroid) {
+		AugmentaObject->Position.X = (.5f - AugmentaObject->BoundingRectPos.Y) * AugmentaScene.Size.Y * MetersToUnrealUnits;
+		AugmentaObject->Position.Y = (AugmentaObject->BoundingRectPos.X - .5f) * AugmentaScene.Size.X * MetersToUnrealUnits;
+	}
+	else {
+		AugmentaObject->Position.X = (.5f - AugmentaObject->Centroid.Y) * AugmentaScene.Size.Y * MetersToUnrealUnits;
+		AugmentaObject->Position.Y = (AugmentaObject->Centroid.X - .5f) * AugmentaScene.Size.X * MetersToUnrealUnits;
+	}
+
+	AugmentaObject->Position.Z = bApplyObjectHeight ? AugmentaObject->Height * .5f * MetersToUnrealUnits : 0;
 
 	AugmentaObject->Position += AugmentaScene.Position;
 
-	AugmentaObject->Rotation = FQuat::Identity;
+	AugmentaObject->Rotation = FQuat(FRotator(0, -AugmentaObject->BoundingRectRotation, 0));
 
-	AugmentaObject->Scale.X = AugmentaObject->BoundingRectSize.Y * AugmentaScene.Size.Y;
-	AugmentaObject->Scale.Y = AugmentaObject->BoundingRectSize.X * AugmentaScene.Size.X;
-	AugmentaObject->Scale.Z = AugmentaObject->Height;
+	if (bApplyObjectScale) {
+		AugmentaObject->Scale.X = AugmentaObject->BoundingRectSize.Y * AugmentaScene.Size.Y;
+		AugmentaObject->Scale.Y = AugmentaObject->BoundingRectSize.X * AugmentaScene.Size.X;
+		AugmentaObject->Scale.Z = AugmentaObject->Height;
+	}
+	else {
+		AugmentaObject->Scale = FVector::OneVector;
+	}
 
 	AugmentaObject->LastUpdateTime = FDateTime::Now();
+}
+
+void FLiveLinkAugmentaSource::UpdateAugmentaObjectExtraFromOSC(OSCPP::Server::ArgStream* Args) {
+
+	const int Frame = Args->int32();
+	const int Id = Args->int32();
+	const int Oid = Args->int32();
+
+	if (AugmentaObjects.Contains(Id)) {
+		AugmentaObjects[Id].Highest.X = Args->float32();
+		AugmentaObjects[Id].Highest.Y = Args->float32();
+		AugmentaObjects[Id].Distance = Args->float32();
+		AugmentaObjects[Id].Reflectivity = Args->float32();
+	}
 }
 
 void FLiveLinkAugmentaSource::AddAugmentaObject(FLiveLinkAugmentaObject AugmentaObject)

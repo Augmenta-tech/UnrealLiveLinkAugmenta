@@ -54,6 +54,7 @@ public:
 	virtual FText GetSourceStatus() const override { return SourceStatus; }
 
 	virtual TSubclassOf<ULiveLinkSourceSettings> GetSettingsClass() const override { return ULiveLinkAugmentaSourceSettings::StaticClass(); }
+	virtual void OnSettingsChanged(ULiveLinkSourceSettings* Settings, const FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	// End ILiveLinkSource Interface
 
@@ -125,6 +126,9 @@ private:
 	// Deferred start delegate handle
 	FDelegateHandle DeferredStartDelegateHandle;
 
+	// Pointer to the settings for this source so we don't have to duplicate data
+	ULiveLinkAugmentaSourceSettings* SavedSourceSettings = nullptr;
+
 	// Maximum rate at which to refresh the server
 	uint32 LocalUpdateRateInHz = 120;
 
@@ -133,6 +137,15 @@ private:
 
 	// Maximum inactive time before a point is removed
 	float TimeoutDuration;
+
+	// Offset object position vertically according to its height
+	bool bApplyObjectHeight;
+
+	// Use bounding box size as object scale
+	bool bApplyObjectScale;
+
+	// Use centroid position as position instead of bounding box center when using scale
+	bool bOffsetObjectPositionOnCentroid;
 
 	// Augmenta scene parameters
 	FString SceneName;
@@ -151,6 +164,7 @@ private:
 	// OSC Parsing
 	void HandleOSCPacket(const OSCPP::Server::Packet& Packet);
 	void ReadAugmentaObjectFromOSC(FLiveLinkAugmentaObject* AugmentaObject, OSCPP::Server::ArgStream* Args);
+	void UpdateAugmentaObjectExtraFromOSC(OSCPP::Server::ArgStream* Args);
 	void AddAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
 	void UpdateAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
 	void RemoveAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
