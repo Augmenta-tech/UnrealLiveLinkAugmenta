@@ -6,9 +6,9 @@ This repo contains the Unreal Live Link Augmenta Plugin only. It is currently co
 
 1. Close your Unreal project.
 
-2. (Git User) Add this repository as a submodule in a `*Plugins*` folder at the root of your Unreal project (where your Content folder is). The path to this repository should look like `YourProjectName\Plugins\UnrealLiveLinkAugmenta\`.
+2-(Git User). Add this repository as a submodule in a `*Plugins*` folder at the root of your Unreal project (where your Content folder is). The path to this repository should look like `YourProjectName\Plugins\UnrealLiveLinkAugmenta\`.
 
-2. (Non Git User) Download zip and unzip this project in a `*Plugins*` folder at the root of your Unreal project (where your Content folder is). The path to this project should look like `YourProjectName\Plugins\UnrealLiveLinkAugmenta\`.
+2-(Non Git User). Download zip and unzip this project in a `*Plugins*` folder at the root of your Unreal project (where your Content folder is). The path to this project should look like `YourProjectName\Plugins\UnrealLiveLinkAugmenta\`.
 
 3. Launch your Unreal project. It should ask you to build UnrealLiveLinkAugmenta, click yes and wait for the build to finish and the Unreal editor to open.
 
