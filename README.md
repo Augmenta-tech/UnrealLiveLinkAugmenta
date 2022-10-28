@@ -22,6 +22,17 @@ The Augmenta data is stored in the LiveLinkAugmentaSource :
 - The AugmentaVideoOutput contains the video output data.
 - The AugmentaObjects contains the augmenta objects data, stored in a TMap with the object id as key and AugmentaObject as value. 
 
+### LiveLinkAugmentaSource
+
+The Live Link Augmenta Source as the following parameters :
+
+| Parameter | Description |
+| --- | --- |
+| TimeoutDuration | An existing Augmenta object which has not been updated for this duration will be removed. |
+| ApplyObjectScale | If true, the Augmenta object bounding box size is used as the scale of the subject transform. |
+| ApplyObjectHeight | If true, the local Z position of the subject transform is offsetted by half the Augmenta object height. Otherwise the local Z position of the subject transform is 0. |
+| OffsetObjectPositionOnCentroid | If true, the centroid of the Augmenta object is used for the subject transform position. Otherwise the bounding box center is used. |
+
 ## Usage
 
 The Augmenta data received by this plugin can be used via the Live Link subjects, or the AugmentaManager. Both usages are described below. In both case you need to create the Live Link Source.
