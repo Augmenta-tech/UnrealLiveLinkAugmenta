@@ -24,7 +24,7 @@ The Augmenta data is stored in the LiveLinkAugmentaSource :
 
 ### LiveLinkAugmentaSource
 
-The Live Link Augmenta Source as the following parameters :
+The Live Link Augmenta Source has the following parameters :
 
 | Parameter | Description |
 | --- | --- |
