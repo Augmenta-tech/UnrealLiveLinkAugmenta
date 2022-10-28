@@ -32,8 +32,8 @@ The Live Link Augmenta Source has the following parameters :
 | --- | --- |
 | TimeoutDuration | An existing Augmenta object which has not been updated for this duration will be removed. |
 | ApplyObjectScale | If true, the Augmenta object bounding box size is used as the scale of the subject transform. |
-| ApplyObjectHeight | If true, the local Z position of the subject transform is offsetted by half the Augmenta object height. Otherwise the local Z position of the subject transform is 0. |
-| OffsetObjectPositionOnCentroid | If true, the centroid of the Augmenta object is used for the subject transform position. Otherwise the bounding box center is used. This parameter is used only when ApplyObjectScale is true, otherwise the subject transform position will always be the centroid of the Augmenta object. |
+| ApplyObjectHeight | If true, the position of the subject is moved up by half the Augmenta object height (i.e. it is moved up so that the bottom of the bounding box is at Z = 0). |
+| OffsetObjectPositionOnCentroid | If true, the centroid of the Augmenta object is used for the subject transform position. Otherwise the bounding box center is used. This parameter is only used when ApplyObjectScale is true. If ApplyObjectScale is false, the subject transform position will always be the centroid of the Augmenta object. |
 
 ## Usage
 
