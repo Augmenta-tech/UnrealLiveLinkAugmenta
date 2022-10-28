@@ -22,6 +22,7 @@ The Augmenta data received by this plugin can be used via the Live Link subjects
 
 1. Open the Live Link window by clicking Window -> Virtual Production -> Live Link.
 
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Images/LiveLinkSourceCreation_1.jpg)
 
 2. In the Live Link window click on Source, LiveLinkAugmenta Source, enter your IP address, port and scene name, then click Add.
 
