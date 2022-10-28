@@ -2,9 +2,15 @@
 
 This repo contains the Unreal Live Link Augmenta Plugin only. It is currently compiled with Unreal version **5.0**.
 
-In order to use this plugin in any Unreal project, kindly make this repo as a submodule inside the `Plugins` folder similar to the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo).
+## Installation
 
-## Features implementation
+### Git User
+
+Add this repository as a submodule in a `*Plugins*` folder at the root of your Unreal project (where your Content folder is). The path to this repository should look like `YourProjectName\Plugins\UnrealLiveLinkAugmenta\`.
+
+### Non Git User
+
+Download zip and unzip this project in a `*Plugins*` folder at the root of your Unreal project (where your Content folder is). The path to this project should look like `YourProjectName\Plugins\UnrealLiveLinkAugmenta\`.
 
 ### OSC Protocol V2
 [V2 Wiki](https://github.com/Augmenta-tech/Augmenta/wiki/Data)
@@ -26,10 +32,11 @@ The Augmenta data received by this plugin can be used via the Live Link subjects
 
 2. In the Live Link window click on Source, LiveLinkAugmenta Source, enter your IP address, port and scene name, then click Add.
 
-
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Images/LiveLinkSourceCreation_2.jpg)
 
 3. If you are receiving Augmenta data (from a node, Fusion, or the simulator), you should see the received Augmenta elements in the subjects list.
 
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Images/LiveLinkSourceCreation_3.jpg)
 
 ### Using the Live Link subjects
 
@@ -37,8 +44,7 @@ This is the standard Live Link usage. The Augmenta elements (scene, videoOutput 
 
 You can use those subjects to control the transforms of actors in your scene through the LiveLinkComponentController.
 
-
-
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Images/LiveLinkComponentController.jpg))
 
 You can check the L_LiveLinkAugmentaDemo_LiveLinkSubjects level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo) for an example of this usage.
 
