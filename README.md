@@ -64,7 +64,7 @@ You can use those subjects to control the transforms of actors in your scene thr
 You can check the L_LiveLinkAugmentaDemo_LiveLinkSubjects level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo) for an example of this usage.
 
 
-### Using the Augmenta Manager
+### Using the Augmenta Manager (not working properly yet)
 
 The Augmenta Manager exposes the complete Augmenta data of the Live Link Source to C++ or Blueprints for advanced usage such as spawning objects at runtime or using more advanced Augmenta data. Additionally, the Augmenta Manager transfer Augmenta events from the Live Link source thread to the game thread (for blueprints).
 
