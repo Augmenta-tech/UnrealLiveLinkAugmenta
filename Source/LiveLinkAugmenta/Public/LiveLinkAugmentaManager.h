@@ -16,6 +16,7 @@ class FLiveLinkAugmentaSource;
 /** Delegates */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaSceneUpdatedEvent, const FLiveLinkAugmentaScene, AugmentaScene);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaObjectUpdatedEvent, const FLiveLinkAugmentaObject, AugmentaObject);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaObjectLeftEvent, const int32, AugmentaObjectId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaVideoOutputUpdatedEvent, const FLiveLinkAugmentaVideoOutput, AugmentaVideoOutput);
 
 UCLASS(BlueprintType, Category = "Augmenta")
@@ -59,9 +60,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
 	FAugmentaObjectUpdatedEvent AugmentaObjectUpdated;
 
-	///** A delegate that is fired when an Augmenta object will leave message is received. */
+	///** A delegate that is fired when an Augmenta object has left the scene. */
 	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	FAugmentaObjectUpdatedEvent AugmentaObjectWillLeave;
+	FAugmentaObjectLeftEvent AugmentaObjectLeft;
 
 	//Augmenta scene data
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Augmenta|Data")
@@ -98,9 +99,8 @@ private:
 	bool bIsSceneUpdated = false;
 	bool bIsVideoOutputUpdated = false;
 
-	enum EventType {Entered, Updated, WillLeave};
+	enum EventType {Entered, Updated, Left};
 	TMap<int, EventType> AugmentaObjectsReceivedEvents;
-	TArray<int> AugmentaObjectsReceivedEventsKeys;
 
 	void AddAugmentaObjectReceivedEvent(int id, EventType type);
 

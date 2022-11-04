@@ -37,9 +37,8 @@ void ALiveLinkAugmentaManager::Tick(float DeltaTime)
 	if (LiveLinkAugmentaSource == nullptr) {
 		FindLiveLinkSource();
 	}
-	else {
-		SendReceivedEvents();
-	}
+	
+	SendReceivedEvents();
 }
 
 void ALiveLinkAugmentaManager::FindLiveLinkSource()
@@ -141,7 +140,7 @@ void ALiveLinkAugmentaManager::OnAugmentaObjectWillLeave(FLiveLinkAugmentaObject
 		AugmentaObjects.Remove(AugmentaObject.Id);
 	}
 
-	AddAugmentaObjectReceivedEvent(AugmentaObject.Id, EventType::WillLeave);
+	AddAugmentaObjectReceivedEvent(AugmentaObject.Id, EventType::Left);
 }
 
 void ALiveLinkAugmentaManager::OnLiveLinkSourceClosed()
@@ -150,7 +149,7 @@ void ALiveLinkAugmentaManager::OnLiveLinkSourceClosed()
 
 	//Mark all objects for removal
 	for (auto& o : AugmentaObjects) {
-		AddAugmentaObjectReceivedEvent(o.Key, EventType::WillLeave);
+		AddAugmentaObjectReceivedEvent(o.Key, EventType::Left);
 	}
 }
 
@@ -179,28 +178,29 @@ void ALiveLinkAugmentaManager::SendReceivedEvents()
 	//Lock the received event list
 	FScopeLock lock(&Mutex);
 
-	//Get the list of present ids
-	AugmentaObjectsReceivedEvents.GenerateKeyArray(AugmentaObjectsReceivedEventsKeys);
-
 	//Dispatch corresponding events
-	for (auto& key : AugmentaObjectsReceivedEventsKeys)
+	for (auto& pair : AugmentaObjectsReceivedEvents)
 	{
-		switch (AugmentaObjectsReceivedEvents[key]) {
+		switch (pair.Value) {
 		case EventType::Entered:
 			if (AugmentaObjectEntered.IsBound()) {
-				AugmentaObjectEntered.Broadcast(AugmentaObjects[key]);
+				if (AugmentaObjects.Contains(pair.Key)) {
+					AugmentaObjectEntered.Broadcast(AugmentaObjects[pair.Key]);
+				}
 			}
 			break;
 
 		case EventType::Updated:
 			if (AugmentaObjectUpdated.IsBound()) {
-				AugmentaObjectUpdated.Broadcast(AugmentaObjects[key]);
+				if (AugmentaObjects.Contains(pair.Key)) {
+					AugmentaObjectUpdated.Broadcast(AugmentaObjects[pair.Key]);
+				}
 			}
 			break;
 
-		case EventType::WillLeave:
-			if (AugmentaObjectWillLeave.IsBound()) {
-				AugmentaObjectWillLeave.Broadcast(AugmentaObjects[key]);
+		case EventType::Left:
+			if (AugmentaObjectLeft.IsBound()) {
+				AugmentaObjectLeft.Broadcast(pair.Key);
 			}
 			break;
 

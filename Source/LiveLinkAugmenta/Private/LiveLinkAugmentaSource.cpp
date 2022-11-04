@@ -291,6 +291,7 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 
 			AugmentaVideoOutput.Position.X = (AugmentaScene.Position.X + AugmentaScene.Size.Y * .5f * MetersToUnrealUnits) - AugmentaVideoOutput.Offset.Y - AugmentaVideoOutput.Size.Y * .5f * MetersToUnrealUnits;
 			AugmentaVideoOutput.Position.Y = (AugmentaScene.Position.Y - AugmentaScene.Size.X * .5f * MetersToUnrealUnits) + AugmentaVideoOutput.Offset.X + AugmentaVideoOutput.Size.X * .5f * MetersToUnrealUnits;
+			AugmentaVideoOutput.Position.Z = 0;
 
 			AugmentaVideoOutput.Rotation = AugmentaScene.Rotation;
 
