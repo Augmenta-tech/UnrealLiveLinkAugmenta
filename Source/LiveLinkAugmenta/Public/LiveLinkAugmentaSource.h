@@ -28,6 +28,7 @@ class ILiveLinkClient;
 DECLARE_DELEGATE_OneParam(FLiveLinkAugmentaSceneUpdatedEvent, FLiveLinkAugmentaScene);
 DECLARE_DELEGATE_OneParam(FLiveLinkAugmentaObjectUpdatedEvent, FLiveLinkAugmentaObject);
 DECLARE_DELEGATE_OneParam(FLiveLinkAugmentaVideoOutputUpdatedEvent, FLiveLinkAugmentaVideoOutput);
+DECLARE_DELEGATE(FLiveLinkAugmentaSourceClosedEvent);
 
 class LIVELINKAUGMENTA_API FLiveLinkAugmentaSource : public ILiveLinkSource, public FRunnable, public TSharedFromThis<FLiveLinkAugmentaSource>
 {
@@ -82,6 +83,9 @@ public:
 
 	/** A delegate that is fired when an Augmenta video output (fusion) message is generated. */
 	FLiveLinkAugmentaVideoOutputUpdatedEvent OnLiveLinkAugmentaVideoOutputUpdated;
+
+	/** A delegate that is fired when the source is closed. */
+	FLiveLinkAugmentaSourceClosedEvent OnLiveLinkAugmentaSourceClosed;
 
 	FString GetSceneName();
 

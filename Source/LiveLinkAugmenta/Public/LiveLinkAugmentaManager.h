@@ -14,9 +14,9 @@ class ULiveLinkPreset;
 class FLiveLinkAugmentaSource;
 
 /** Delegates */
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaSceneUpdatedEvent, const FLiveLinkAugmentaScene, AugmentaScene);
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaObjectUpdatedEvent, const FLiveLinkAugmentaObject, AugmentaObject);
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaVideoOutputUpdatedEvent, const FLiveLinkAugmentaVideoOutput, AugmentaVideoOutput);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaSceneUpdatedEvent, const FLiveLinkAugmentaScene, AugmentaScene);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaObjectUpdatedEvent, const FLiveLinkAugmentaObject, AugmentaObject);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaVideoOutputUpdatedEvent, const FLiveLinkAugmentaVideoOutput, AugmentaVideoOutput);
 
 UCLASS(BlueprintType, Category = "Augmenta")
 class LIVELINKAUGMENTA_API ALiveLinkAugmentaManager : public AActor
@@ -44,24 +44,24 @@ public:
 	FString SceneName;
 
 	///** A delegate that is fired when an Augmenta scene message is received. */
-	//UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	//FAugmentaSceneUpdatedEvent OnAugmentaSceneUpdated;
+	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
+	FAugmentaSceneUpdatedEvent AugmentaSceneUpdated;
 
 	///** A delegate that is fired when an Augmenta video output (fusion) message is received. */
-	//UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	//FAugmentaVideoOutputUpdatedEvent OnAugmentaVideoOutputUpdated;
+	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
+	FAugmentaVideoOutputUpdatedEvent AugmentaVideoOutputUpdated;
 
 	///** A delegate that is fired when an Augmenta object entered message is received. */
-	//UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	//FAugmentaObjectUpdatedEvent OnAugmentaObjectEntered;
+	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
+	FAugmentaObjectUpdatedEvent AugmentaObjectEntered;
 
 	///** A delegate that is fired when an Augmenta object updated message is received. */
-	//UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	//FAugmentaObjectUpdatedEvent OnAugmentaObjectUpdated;
+	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
+	FAugmentaObjectUpdatedEvent AugmentaObjectUpdated;
 
 	///** A delegate that is fired when an Augmenta object will leave message is received. */
-	//UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	//FAugmentaObjectUpdatedEvent OnAugmentaObjectWillLeave;
+	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
+	FAugmentaObjectUpdatedEvent AugmentaObjectWillLeave;
 
 	//Augmenta scene data
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Augmenta|Data")
@@ -77,15 +77,32 @@ public:
 
 private:
 
-	FLiveLinkAugmentaSource* LiveLinkAugmentaSource;
 	
-	FTimerHandle FindSourceTimerHandle;
+	FLiveLinkAugmentaSource* LiveLinkAugmentaSource;
+
+	//FTimerHandle FindSourceTimerHandle;
 
 	void FindLiveLinkSource();
 
+	//Events from Live Link Source
 	void OnAugmentaSceneUpdated(FLiveLinkAugmentaScene AugmentaScene);
 	void OnAugmentaVideoOutputUpdated(FLiveLinkAugmentaVideoOutput AugmentaVideoOutput);
 	void OnAugmentaObjectEntered(FLiveLinkAugmentaObject AugmentaObject);
 	void OnAugmentaObjectUpdated(FLiveLinkAugmentaObject AugmentaObject);
 	void OnAugmentaObjectWillLeave(FLiveLinkAugmentaObject AugmentaObject);
+	void OnLiveLinkSourceClosed();
+
+	//Events to Blueprint
+	void SendReceivedEvents();
+
+	bool bIsSceneUpdated = false;
+	bool bIsVideoOutputUpdated = false;
+
+	enum EventType {Entered, Updated, WillLeave};
+	TMap<int, EventType> AugmentaObjectsReceivedEvents;
+	TArray<int> AugmentaObjectsReceivedEventsKeys;
+
+	void AddAugmentaObjectReceivedEvent(int id, EventType type);
+
+	FCriticalSection Mutex;
 };
