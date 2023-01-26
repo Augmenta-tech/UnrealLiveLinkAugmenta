@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Augmenta, All Rights Reserved.
 
 #pragma once
 
@@ -17,7 +17,7 @@ public:
 
 	/** Augmenta scene name */
 	UPROPERTY(VisibleAnywhere, Category = "Augmenta")
-	FString SceneName;
+	FName SceneName;
 
 	/** Time before a not updated object is removed */
 	UPROPERTY(EditAnywhere, Category = "Augmenta")

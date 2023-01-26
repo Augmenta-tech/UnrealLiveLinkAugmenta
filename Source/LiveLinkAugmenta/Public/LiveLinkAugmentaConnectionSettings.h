@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Augmenta, All Rights Reserved.
 
 #pragma once
 
@@ -24,5 +24,5 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaConnectionSettings
 
 	/** Augmenta scene name */
 	UPROPERTY(EditAnywhere, Category = "Connection Settings")
-	FString SceneName = TEXT("AugmentaMain");
+	FName SceneName = TEXT("AugmentaMain");
 };

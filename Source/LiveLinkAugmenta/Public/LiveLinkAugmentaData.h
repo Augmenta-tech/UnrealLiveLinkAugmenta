@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Augmenta, All Rights Reserved.
 
 #pragma once
 
@@ -18,7 +18,7 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaObject
 		int32 Frame;
 
 	/** The unique Id for each object. (ex: 42nd object to enter is assigned pid=41). */
-	UPROPERTY(BlueprintReadOnly, DisplayName = "Id", Category = "Augmenta|Object")
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Object")
 		int32 Id;
 
 	/**
@@ -99,11 +99,11 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaScene
 	GENERATED_BODY()
 
 	/** The Time in frame number. */
-	UPROPERTY(BlueprintReadOnly, DisplayName = "Frame", Category = "Augmenta|Scene")
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Scene")
 		int32 Frame;
 
 	/** The number of objects in the scene. */
-	UPROPERTY(BlueprintReadOnly, DisplayName = "ObjectCount", Category = "Augmenta|Scene")
+	UPROPERTY(BlueprintReadOnly, Category = "Augmenta|Scene")
 		int32 ObjectCount;
 
 	/** The scene size in meters. */
