@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Augmenta, All Rights Reserved.
 
 #include "LiveLinkAugmentaSource.h"
 #include "LiveLinkAugmenta.h"
@@ -72,12 +72,7 @@ FLiveLinkAugmentaSource::~FLiveLinkAugmentaSource()
 		Socket = nullptr;
 	}
 
-	if (OnLiveLinkAugmentaSourceClosed.IsBound())
-	{
-		OnLiveLinkAugmentaSourceClosed.Execute();
-	}
-
-	UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Closed scene %s with IP address %s"), *SceneName, *DeviceEndpoint.ToString());
+	UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Closed scene %s with IP address %s"), *SceneName.ToString(), *DeviceEndpoint.ToString());
 }
 
 void FLiveLinkAugmentaSource::ReceiveClient(ILiveLinkClient* InClient, FGuid InSourceGuid)
@@ -174,6 +169,9 @@ void FLiveLinkAugmentaSource::Stop()
 uint32 FLiveLinkAugmentaSource::Run()
 {
 	const double SleepDeltaTime = 1.0 / (double)LocalUpdateRateInHz;
+	//const int ObjectDataSize = 12;
+	//const int SceneDataSize = 12;
+	//FLiveLinkAugmentaObject AugmentaObject;
 
 	while (!Stopping)
 	{
@@ -202,9 +200,29 @@ uint32 FLiveLinkAugmentaSource::Run()
 	return 0;
 }
 
-FString FLiveLinkAugmentaSource::GetSceneName()
+FName FLiveLinkAugmentaSource::GetSceneName()
 {
 	return SceneName;
+}
+
+FLiveLinkAugmentaScene FLiveLinkAugmentaSource::GetAugmentaScene()
+{
+	return AugmentaScene;
+}
+
+TMap<int, FLiveLinkAugmentaObject> FLiveLinkAugmentaSource::GetAugmentaObjects()
+{
+	return AugmentaObjects;
+}
+
+int FLiveLinkAugmentaSource::GetAugmentaObjectsCount()
+{
+	return AugmentaObjects.Num();
+}
+
+FLiveLinkAugmentaVideoOutput FLiveLinkAugmentaSource::GetAugmentaVideoOutput()
+{
+	return AugmentaVideoOutput;
 }
 
 void FLiveLinkAugmentaSource::Send(FLiveLinkFrameDataStruct* FrameDataToSend, FName SubjectName)
@@ -234,7 +252,7 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 
 	if (Packet.isBundle()) {
 
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received OSC bundle. This should not happen in Augmenta protocol V2."));
+		UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Received OSC bundle. This should not happen in Augmenta protocol V2."));
 
 	} else {
 
@@ -262,7 +280,7 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 
 			AugmentaScene.Scale.X = AugmentaScene.Size.Y;
 			AugmentaScene.Scale.Y = AugmentaScene.Size.X;
-			AugmentaScene.Scale.Z = 1;
+			AugmentaScene.Scale.Z = 0;
 
 			//Update scene subject
 			FLiveLinkFrameDataStruct SceneFrameData(FLiveLinkTransformFrameData::StaticStruct());
@@ -270,7 +288,7 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 
 			SceneTransformFrameData->Transform = FTransform(AugmentaScene.Rotation, AugmentaScene.Position, AugmentaScene.Scale);
 
-			FName CurrentName = FName(SceneName + "_Scene");
+			FName CurrentName = FName(SceneName.ToString() + "_Scene");
 			Send(&SceneFrameData, CurrentName);
 
 			//Send scene updated event
@@ -291,13 +309,12 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 
 			AugmentaVideoOutput.Position.X = (AugmentaScene.Position.X + AugmentaScene.Size.Y * .5f * MetersToUnrealUnits) - AugmentaVideoOutput.Offset.Y - AugmentaVideoOutput.Size.Y * .5f * MetersToUnrealUnits;
 			AugmentaVideoOutput.Position.Y = (AugmentaScene.Position.Y - AugmentaScene.Size.X * .5f * MetersToUnrealUnits) + AugmentaVideoOutput.Offset.X + AugmentaVideoOutput.Size.X * .5f * MetersToUnrealUnits;
-			AugmentaVideoOutput.Position.Z = 0;
 
 			AugmentaVideoOutput.Rotation = AugmentaScene.Rotation;
 
 			AugmentaVideoOutput.Scale.X = AugmentaVideoOutput.Size.Y;
 			AugmentaVideoOutput.Scale.Y = AugmentaVideoOutput.Size.X;
-			AugmentaVideoOutput.Scale.Z = 1;
+			AugmentaVideoOutput.Scale.Z = 0;
 
 			//Update video output subject
 			FLiveLinkFrameDataStruct VideoOutputFrameData(FLiveLinkTransformFrameData::StaticStruct());
@@ -305,7 +322,7 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 
 			VideoOutputTransformFrameData->Transform = FTransform(AugmentaVideoOutput.Rotation, AugmentaVideoOutput.Position, AugmentaVideoOutput.Scale);
 
-			FName CurrentName = FName(SceneName + "_VideoOutput");
+			FName CurrentName = FName(SceneName.ToString() + "_VideoOutput");
 			Send(&VideoOutputFrameData, CurrentName);
 
 			//Send video output updated event
@@ -454,7 +471,7 @@ void FLiveLinkAugmentaSource::UpdateAugmentaObject(FLiveLinkAugmentaObject Augme
 
 void FLiveLinkAugmentaSource::RemoveAugmentaObject(FLiveLinkAugmentaObject AugmentaObject)
 {
-	FName CurrentName = FName(SceneName + "_Object_" + FString::FromInt(AugmentaObject.Oid));
+	FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(AugmentaObject.Oid));
 
 	if (EncounteredSubjects.Contains(CurrentName)) {
 		EncounteredSubjects.Remove(CurrentName);
@@ -478,7 +495,7 @@ void FLiveLinkAugmentaSource::UpdateAugmentaObjectSubject(FLiveLinkAugmentaObjec
 
 	ObjectTransformFrameData->Transform = FTransform(AugmentaObject.Rotation, AugmentaObject.Position, AugmentaObject.Scale);
 
-	FName CurrentName = FName(SceneName + "_Object_" + FString::FromInt(AugmentaObject.Oid));
+	FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(AugmentaObject.Oid));
 	Send(&ObjectFrameData, CurrentName);
 }
 

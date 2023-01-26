@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright Augmenta, All Rights Reserved.
 
 #include "LiveLinkAugmentaManager.h"
 
@@ -11,9 +11,12 @@
 ALiveLinkAugmentaManager::ALiveLinkAugmentaManager()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	SceneName = "AugmentaMain";
+	bShowDebugLogs = false;
+	bIsConnected = false;
+	sourceSearchPeriod = 2.0f;
 }
 
 // Called when the game starts or when spawned
@@ -24,24 +27,61 @@ void ALiveLinkAugmentaManager::BeginPlay()
 	//Apply Live Link preset
 	if (IsValid(LiveLinkPreset)) {
 		LiveLinkPreset->ApplyToClientLatent();
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Applying Live Link preset..."));
+	} else
+	{
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Live Link preset is empty. Make sure to apply the correct Live Link preset yourself (using the Default preset in Project Settings -> Live Link for example)."));
 	}
 
-	FindLiveLinkSource();
+	//Wait 5 seconds for the preset to load then try to find Live Link Source
+	GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, 5, false);
 }
 
 // Called every frame
 void ALiveLinkAugmentaManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (LiveLinkAugmentaSource == nullptr) {
-		FindLiveLinkSource();
-	}
-	
-	SendReceivedEvents();
 }
 
-void ALiveLinkAugmentaManager::FindLiveLinkSource()
+bool ALiveLinkAugmentaManager::GetAugmentaScene(FLiveLinkAugmentaScene& AugmentaScene)
+{
+	if(bIsConnected)
+	{
+		AugmentaScene = LiveLinkAugmentaSource->GetAugmentaScene();
+		return true;
+	}
+
+	return false;
+}
+
+bool ALiveLinkAugmentaManager::GetAugmentaObjects(TMap<int, FLiveLinkAugmentaObject>& AugmentaObjects)
+{
+	if (bIsConnected)
+	{
+		AugmentaObjects = LiveLinkAugmentaSource->GetAugmentaObjects();
+		return true;
+	}
+
+	return false;
+}
+
+int ALiveLinkAugmentaManager::GetAugmentaObjectsCount()
+{
+	return bIsConnected ? LiveLinkAugmentaSource->GetAugmentaObjectsCount() : 0;
+}
+
+bool ALiveLinkAugmentaManager::GetAugmentaVideoOutput(FLiveLinkAugmentaVideoOutput& AugmentaVideoOutput)
+{
+	if (bIsConnected)
+	{
+		AugmentaVideoOutput = LiveLinkAugmentaSource->GetAugmentaVideoOutput();
+		return true;
+	}
+
+	return false;
+}
+
+void ALiveLinkAugmentaManager::SearchLiveLinkSource()
 {
 
 	if (IModularFeatures::Get().IsModularFeatureAvailable(ILiveLinkClient::ModularFeatureName))
@@ -54,13 +94,15 @@ void ALiveLinkAugmentaManager::FindLiveLinkSource()
 
 		for (auto& Source : AllSources) {
 
-			//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Found source %s of type %s"), *Source.ToString(), *LiveLinkClient.GetSourceType(Source).ToString());
-			
+			if (bShowDebugLogs) {
+				UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Found source %s of type %s"), *Source.ToString(), *LiveLinkClient.GetSourceType(Source).ToString());
+			}
+
 			if (LiveLinkClient.GetSourceType(Source).ToString() == "Augmenta") {
 
 				ULiveLinkAugmentaSourceSettings* AugmentaSourceSettings = Cast<ULiveLinkAugmentaSourceSettings>(LiveLinkClient.GetSourceSettings(Source));
 
-				if (AugmentaSourceSettings->SceneName == SceneName) {
+				if (AugmentaSourceSettings && AugmentaSourceSettings->SceneName == SceneName) {
 					LiveLinkAugmentaSource = AugmentaSourceSettings->SourceReference;
 					break;
 				}
@@ -69,154 +111,68 @@ void ALiveLinkAugmentaManager::FindLiveLinkSource()
 	}
 
 	if (LiveLinkAugmentaSource == nullptr) {
-
-		//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Could not find an Augmenta source named %s."), *SceneName);
+		//Try again in sourceCheckPeriod seconds
+		GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, sourceSearchPeriod, false);
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Could not find an Augmenta source named %s. Trying again in %f seconds."), *SceneName.ToString(), sourceSearchPeriod);
 	}
 	else {
-
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Found Augmenta source named %s."), *SceneName);
+		GetWorld()->GetTimerManager().ClearTimer(SearchSourceTimerHandle);
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Found Augmenta source named %s."), *SceneName.ToString());
 
 		//Bind events
-		LiveLinkAugmentaSource->OnLiveLinkAugmentaSceneUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnAugmentaSceneUpdated);
-		LiveLinkAugmentaSource->OnLiveLinkAugmentaVideoOutputUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnAugmentaVideoOutputUpdated);
-		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectEntered.BindUObject(this, &ALiveLinkAugmentaManager::OnAugmentaObjectEntered);
-		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnAugmentaObjectUpdated);
-		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectWillLeave.BindUObject(this, &ALiveLinkAugmentaManager::OnAugmentaObjectWillLeave);
-		LiveLinkAugmentaSource->OnLiveLinkAugmentaSourceClosed.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkSourceClosed);
+		LiveLinkAugmentaSource->OnLiveLinkAugmentaSceneUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaSceneUpdated);
+		LiveLinkAugmentaSource->OnLiveLinkAugmentaVideoOutputUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaVideoOutputUpdated);
+		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectEntered.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectEntered);
+		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectUpdated);
+		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectWillLeave.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectWillLeave);
+
+		bIsConnected = true;
 	}
 }
 
-void ALiveLinkAugmentaManager::OnAugmentaSceneUpdated(FLiveLinkAugmentaScene NewAugmentaScene)
+void ALiveLinkAugmentaManager::OnLiveLinkAugmentaSceneUpdated(FLiveLinkAugmentaScene NewAugmentaScene)
 {
-	//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Scene Updated."));
 
-	AugmentaScene = NewAugmentaScene;
-
-	bIsSceneUpdated = true;
-}
-
-void ALiveLinkAugmentaManager::OnAugmentaVideoOutputUpdated(FLiveLinkAugmentaVideoOutput NewAugmentaVideoOutput)
-{
-	//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: VideoOutput Updated."));
-
-	AugmentaVideoOutput = NewAugmentaVideoOutput;
-
-	bIsVideoOutputUpdated = true;
-}
-
-void ALiveLinkAugmentaManager::OnAugmentaObjectEntered(FLiveLinkAugmentaObject AugmentaObject)
-{
-	//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Object Entered."));
-
-	if (AugmentaObjects.Contains(AugmentaObject.Id)) {
-		AugmentaObjects[AugmentaObject.Id] = AugmentaObject;
-	}
-	else {
-		AugmentaObjects.Emplace(AugmentaObject.Id, AugmentaObject);
-	}
-
-	AddAugmentaObjectReceivedEvent(AugmentaObject.Id, EventType::Entered);
-}
-
-void ALiveLinkAugmentaManager::OnAugmentaObjectUpdated(FLiveLinkAugmentaObject AugmentaObject)
-{
-	//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Object Updated."));
-
-	if (AugmentaObjects.Contains(AugmentaObject.Id)) {
-		AugmentaObjects[AugmentaObject.Id] = AugmentaObject;
-	}
-	else {
-		AugmentaObjects.Emplace(AugmentaObject.Id, AugmentaObject);
-	}
-
-	AddAugmentaObjectReceivedEvent(AugmentaObject.Id, EventType::Updated);
-}
-
-void ALiveLinkAugmentaManager::OnAugmentaObjectWillLeave(FLiveLinkAugmentaObject AugmentaObject)
-{
-	//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Object Will Leave."));
-
-	if (AugmentaObjects.Contains(AugmentaObject.Id)) {
-		AugmentaObjects.Remove(AugmentaObject.Id);
-	}
-
-	AddAugmentaObjectReceivedEvent(AugmentaObject.Id, EventType::Left);
-}
-
-void ALiveLinkAugmentaManager::OnLiveLinkSourceClosed()
-{
-	LiveLinkAugmentaSource = nullptr;
-
-	//Mark all objects for removal
-	for (auto& o : AugmentaObjects) {
-		AddAugmentaObjectReceivedEvent(o.Key, EventType::Left);
-	}
-}
-
-void ALiveLinkAugmentaManager::SendReceivedEvents()
-{
-	/* Scene */
-	if (bIsSceneUpdated) {
-		if (AugmentaSceneUpdated.IsBound()) {
-			AugmentaSceneUpdated.Broadcast(AugmentaScene);
-		}
-
-		bIsSceneUpdated = false;
-	}
-
-	/* Video output */
-	if (bIsVideoOutputUpdated) {
-		if (AugmentaVideoOutputUpdated.IsBound()) {
-			AugmentaVideoOutputUpdated.Broadcast(AugmentaVideoOutput);
-		}
-
-		bIsVideoOutputUpdated = false;
-	}
-
-	/* Objects */
-
-	//Lock the received event list
-	FScopeLock lock(&Mutex);
-
-	//Dispatch corresponding events
-	for (auto& pair : AugmentaObjectsReceivedEvents)
+	if (bShowDebugLogs)
 	{
-		switch (pair.Value) {
-		case EventType::Entered:
-			if (AugmentaObjectEntered.IsBound()) {
-				if (AugmentaObjects.Contains(pair.Key)) {
-					AugmentaObjectEntered.Broadcast(AugmentaObjects[pair.Key]);
-				}
-			}
-			break;
-
-		case EventType::Updated:
-			if (AugmentaObjectUpdated.IsBound()) {
-				if (AugmentaObjects.Contains(pair.Key)) {
-					AugmentaObjectUpdated.Broadcast(AugmentaObjects[pair.Key]);
-				}
-			}
-			break;
-
-		case EventType::Left:
-			if (AugmentaObjectLeft.IsBound()) {
-				AugmentaObjectLeft.Broadcast(pair.Key);
-			}
-			break;
-
-		}
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Scene updated."));
 	}
-
-	//Empty the received events list
-	AugmentaObjectsReceivedEvents.Empty();
 }
 
-void ALiveLinkAugmentaManager::AddAugmentaObjectReceivedEvent(int id, EventType type) 
+void ALiveLinkAugmentaManager::OnLiveLinkAugmentaVideoOutputUpdated(FLiveLinkAugmentaVideoOutput NewAugmentaVideoOutput)
 {
-	if (AugmentaObjectsReceivedEvents.Contains(id)) {
-		AugmentaObjectsReceivedEvents.Remove(id);
+
+	if(bShowDebugLogs)
+	{
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: VideoOutput updated."));
+	}
+}
+
+void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectEntered(FLiveLinkAugmentaObject AugmentaObject)
+{
+
+	if (bShowDebugLogs)
+	{
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Object %d entered."), AugmentaObject.Id);
+	}
+}
+
+void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectUpdated(FLiveLinkAugmentaObject AugmentaObject)
+{
+
+	if (bShowDebugLogs)
+	{
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Object %d updated."), AugmentaObject.Id);
 	}
 
-	AugmentaObjectsReceivedEvents.Emplace(id, type);
+}
+
+void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectWillLeave(FLiveLinkAugmentaObject AugmentaObject)
+{
+
+	if (bShowDebugLogs)
+	{
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Object %d will leave."), AugmentaObject.Id);
+	}
 }
 
