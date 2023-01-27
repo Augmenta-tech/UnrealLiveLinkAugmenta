@@ -217,6 +217,8 @@ void ALiveLinkAugmentaManager::OnLiveLinkAugmentaSourceDestroyed()
 	bIsConnected = false;
 	LiveLinkAugmentaSource = nullptr;
 
+	OnAugmentaSourceDestroyed.Broadcast();
+
 	//Start searching for a new Live Link Source
 	GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, SourceSearchDelay, false);
 

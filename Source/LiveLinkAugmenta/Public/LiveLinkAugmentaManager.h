@@ -21,6 +21,7 @@ class FLiveLinkAugmentaSource;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaSceneUpdatedEvent, const FLiveLinkAugmentaScene, AugmentaScene);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaObjectUpdatedEvent, const FLiveLinkAugmentaObject, AugmentaObject);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaVideoOutputUpdatedEvent, const FLiveLinkAugmentaVideoOutput, AugmentaVideoOutput);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAugmentaSourceDestroyedEvent);
 
 // Structure used to store Augmenta event data in the circular queue to transfer them between threads
 USTRUCT(BlueprintType) //BlueprintType to get access in BP
@@ -120,6 +121,10 @@ public:
 	// A delegate that is fired when an Augmenta object has left the scene.
 	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
 	FAugmentaObjectUpdatedEvent OnAugmentaObjectLeft;
+
+	// A delegate that is fired when the Augmenta Live Link source is destroyed.
+	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
+	FAugmentaSourceDestroyedEvent OnAugmentaSourceDestroyed;
 
 	// The event count threshold (in percentage of the event queue capacity) above which warnings are issued
 	UPROPERTY(EditAnywhere, Category = "Augmenta|Events", meta = (ClampMin = "0.0", ClampMax = "1.0"))
