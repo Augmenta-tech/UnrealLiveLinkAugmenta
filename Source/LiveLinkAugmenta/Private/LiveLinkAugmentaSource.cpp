@@ -114,15 +114,6 @@ void FLiveLinkAugmentaSource::OnSettingsChanged(ULiveLinkSourceSettings* Setting
 
 		if (SourceSettings != nullptr)
 		{
-			//static FName NAME_TimeoutDuration = GET_MEMBER_NAME_CHECKED(ULiveLinkAugmentaSourceSettings, TimeoutDuration);
-			//static FName NAME_bApplyObjectHeight = GET_MEMBER_NAME_CHECKED(ULiveLinkAugmentaSourceSettings, bApplyObjectHeight);
-			//static FName NAME_bApplyObjectScale = GET_MEMBER_NAME_CHECKED(ULiveLinkAugmentaSourceSettings, bApplyObjectScale);
-			//static FName NAME_bOffsetObjectPositionOnCentroid = GET_MEMBER_NAME_CHECKED(ULiveLinkAugmentaSourceSettings, bOffsetObjectPositionOnCentroid);
-			//const FName PropertyName = Property->GetFName();
-			//const FName MemberPropertyName = MemberProperty->GetFName();
-
-			//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Setting changed. Property = %s. MemberProperty = %s"), *PropertyName.ToString(), *MemberPropertyName.ToString());
-		
 			TimeoutDuration = SavedSourceSettings->TimeoutDuration;
 			bApplyObjectHeight = SavedSourceSettings->bApplyObjectHeight;
 			bApplyObjectScale = SavedSourceSettings->bApplyObjectScale;
@@ -169,9 +160,6 @@ void FLiveLinkAugmentaSource::Stop()
 uint32 FLiveLinkAugmentaSource::Run()
 {
 	const double SleepDeltaTime = 1.0 / (double)LocalUpdateRateInHz;
-	//const int ObjectDataSize = 12;
-	//const int SceneDataSize = 12;
-	//FLiveLinkAugmentaObject AugmentaObject;
 
 	while (!Stopping)
 	{
@@ -215,9 +203,23 @@ TMap<int, FLiveLinkAugmentaObject> FLiveLinkAugmentaSource::GetAugmentaObjects()
 	return AugmentaObjects;
 }
 
+bool FLiveLinkAugmentaSource::GetAugmentaObjectById(FLiveLinkAugmentaObject& AugmentaObject, int Id)
+{
+	if(AugmentaObjects.Contains(Id))
+	{
+		AugmentaObject = AugmentaObjects[Id];
+	}
+	return false;
+}
+
 int FLiveLinkAugmentaSource::GetAugmentaObjectsCount()
 {
 	return AugmentaObjects.Num();
+}
+
+bool FLiveLinkAugmentaSource::ContainsId(int Id)
+{
+	return AugmentaObjects.Contains(Id);
 }
 
 FLiveLinkAugmentaVideoOutput FLiveLinkAugmentaSource::GetAugmentaVideoOutput()

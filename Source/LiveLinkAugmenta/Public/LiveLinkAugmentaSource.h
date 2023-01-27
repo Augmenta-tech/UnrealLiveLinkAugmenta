@@ -83,13 +83,34 @@ public:
 	/** A delegate that is fired when an Augmenta video output (fusion) message is generated. */
 	FLiveLinkAugmentaVideoOutputUpdatedEvent OnLiveLinkAugmentaVideoOutputUpdated;
 
-	// Accessors
+	// Get Augmenta Scene Name
 	FName GetSceneName();
+
+	// Get Augmenta Scene
 	FLiveLinkAugmentaScene GetAugmentaScene();
 
+	// Get Augmenta objects map
 	TMap<int, FLiveLinkAugmentaObject> GetAugmentaObjects();
+
+	/**
+	*  Get the Augmenta Object with specific Id
+	*  @param  AugmentaObject       The returned AugmentaObject
+	*  @param  Id					The desired object Id
+	*  @return FALSE if no object with the desired Id was found
+	*/
+	bool GetAugmentaObjectById(FLiveLinkAugmentaObject& AugmentaObject, int Id);
+
+	// Get the Augmenta Object count
 	int GetAugmentaObjectsCount();
 
+	/**
+	*  Get Whether an object with specific Id is present
+	*  @param  Id					The desired object Id
+	*  @return Whether an object with the desired Id is present
+	*/
+	bool ContainsId(int Id);
+
+	// Get the Augmenta Video Output
 	FLiveLinkAugmentaVideoOutput GetAugmentaVideoOutput();
 
 private:
@@ -163,10 +184,6 @@ private:
 
 	// Augmenta video output
 	FLiveLinkAugmentaVideoOutput AugmentaVideoOutput;
-
-	// Subjects
-	//TArray<FName> DesiredSubjects;
-	//TArray<FName> UndesiredSubjects;
 
 	// OSC Parsing
 	void HandleOSCPacket(const OSCPP::Server::Packet& Packet);

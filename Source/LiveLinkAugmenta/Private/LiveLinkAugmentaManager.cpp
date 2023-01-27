@@ -11,19 +11,21 @@
 ALiveLinkAugmentaManager::ALiveLinkAugmentaManager()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	SceneName = "AugmentaMain";
-	bShowDebugLogs = false;
 	bIsConnected = false;
-	sourceSearchPeriod = 2.0f;
+	SourceSearchPeriod = 2.0f;
 }
 
 // Called when the game starts or when spawned
 void ALiveLinkAugmentaManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	//Create Event data queue
+	AugmentaEventDataQueue = NewObject<UAugmentaEventDataQueue>(this, TEXT("Augmenta Event Data Queue"));
+
 	//Apply Live Link preset
 	if (IsValid(LiveLinkPreset)) {
 		LiveLinkPreset->ApplyToClientLatent();
@@ -41,6 +43,8 @@ void ALiveLinkAugmentaManager::BeginPlay()
 void ALiveLinkAugmentaManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	PropagateLiveLinkEvents();
 }
 
 bool ALiveLinkAugmentaManager::GetAugmentaScene(FLiveLinkAugmentaScene& AugmentaScene)
@@ -94,9 +98,7 @@ void ALiveLinkAugmentaManager::SearchLiveLinkSource()
 
 		for (auto& Source : AllSources) {
 
-			if (bShowDebugLogs) {
-				UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Found source %s of type %s"), *Source.ToString(), *LiveLinkClient.GetSourceType(Source).ToString());
-			}
+			UE_LOG(LogLiveLinkAugmenta, Verbose, TEXT("LiveLinkAugmentaManager: Found source %s of type %s"), *Source.ToString(), *LiveLinkClient.GetSourceType(Source).ToString());
 
 			if (LiveLinkClient.GetSourceType(Source).ToString() == "Augmenta") {
 
@@ -112,8 +114,8 @@ void ALiveLinkAugmentaManager::SearchLiveLinkSource()
 
 	if (LiveLinkAugmentaSource == nullptr) {
 		//Try again in sourceCheckPeriod seconds
-		GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, sourceSearchPeriod, false);
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Could not find an Augmenta source named %s. Trying again in %f seconds."), *SceneName.ToString(), sourceSearchPeriod);
+		GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, SourceSearchPeriod, false);
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Could not find an Augmenta source named %s. Trying again in %f seconds."), *SceneName.ToString(), SourceSearchPeriod);
 	}
 	else {
 		GetWorld()->GetTimerManager().ClearTimer(SearchSourceTimerHandle);
@@ -133,46 +135,189 @@ void ALiveLinkAugmentaManager::SearchLiveLinkSource()
 void ALiveLinkAugmentaManager::OnLiveLinkAugmentaSceneUpdated(FLiveLinkAugmentaScene NewAugmentaScene)
 {
 
-	if (bShowDebugLogs)
+	if(ensure(AugmentaEventDataQueue))
 	{
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Scene updated."));
+		FAugmentaEventData NewEventData;
+		NewEventData.EventType = 0;
+		NewEventData.ObjectId = -1;
+
+		AugmentaEventDataQueue->Events.Enqueue(NewEventData);
 	}
+
+	UE_LOG(LogLiveLinkAugmenta, Verbose, TEXT("LiveLinkAugmentaManager: Received event from Live Link: Scene updated."));
 }
 
 void ALiveLinkAugmentaManager::OnLiveLinkAugmentaVideoOutputUpdated(FLiveLinkAugmentaVideoOutput NewAugmentaVideoOutput)
 {
 
-	if(bShowDebugLogs)
+	if (ensure(AugmentaEventDataQueue))
 	{
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: VideoOutput updated."));
+		FAugmentaEventData NewEventData;
+		NewEventData.EventType = 1;
+		NewEventData.ObjectId = -2;
+
+		AugmentaEventDataQueue->Events.Enqueue(NewEventData);
 	}
+
+	UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Live Link VideoOutput updated."));
 }
 
 void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectEntered(FLiveLinkAugmentaObject AugmentaObject)
 {
 
-	if (bShowDebugLogs)
+	if (ensure(AugmentaEventDataQueue))
 	{
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Object %d entered."), AugmentaObject.Id);
+		FAugmentaEventData NewEventData;
+		NewEventData.EventType = 2;
+		NewEventData.ObjectId = AugmentaObject.Id;
+		NewEventData.AugmentaObject = AugmentaObject;
+
+		AugmentaEventDataQueue->Events.Enqueue(NewEventData);
 	}
+
+	UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Received event from Live Link: Object %d entered."), AugmentaObject.Id);
 }
 
 void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectUpdated(FLiveLinkAugmentaObject AugmentaObject)
 {
 
-	if (bShowDebugLogs)
+	if (ensure(AugmentaEventDataQueue))
 	{
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Object %d updated."), AugmentaObject.Id);
+		FAugmentaEventData NewEventData;
+		NewEventData.EventType = 3;
+		NewEventData.ObjectId = AugmentaObject.Id;
+		NewEventData.AugmentaObject = AugmentaObject;
+
+		AugmentaEventDataQueue->Events.Enqueue(NewEventData);
 	}
+
+	UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Received event from Live Link: Object %d updated."), AugmentaObject.Id);
 
 }
 
 void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectWillLeave(FLiveLinkAugmentaObject AugmentaObject)
 {
 
-	if (bShowDebugLogs)
+	if (ensure(AugmentaEventDataQueue))
 	{
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Object %d will leave."), AugmentaObject.Id);
+		FAugmentaEventData NewEventData;
+		NewEventData.EventType = 4;
+		NewEventData.ObjectId = AugmentaObject.Id;
+		NewEventData.AugmentaObject = AugmentaObject;
+
+		AugmentaEventDataQueue->Events.Enqueue(NewEventData);
+	}
+
+	UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Received event from Live Link: Object %d will leave."), AugmentaObject.Id);
+}
+
+void ALiveLinkAugmentaManager::PropagateLiveLinkEvents()
+{
+
+	if(ensure(AugmentaEventDataQueue))
+	{
+		int QueueEventCount = AugmentaEventDataQueue->Events.Count();
+		int QueueCapacity = AUGMENTAEVENTQUEUECAPACITY - 1;
+
+		if(QueueEventCount >= QueueCapacity * EventQueueCapacityWarningThreshold)
+		{
+			UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaManager: Events count in the Augmenta event queue is reaching critical level: %d events while the total capacity is %d. You might need to decrease your Augmenta send rate or augment the event queue capacity."), QueueEventCount, QueueCapacity);
+		}
+
+		EventDataCache.Empty();
+
+		while(AugmentaEventDataQueue->Events.Count() > 0)
+		{
+			FAugmentaEventData NewEventData;
+
+			//Get event data from queue
+			AugmentaEventDataQueue->Events.Dequeue(NewEventData);
+
+			//Check if an event with this object id as already been extracted from the queue this frame
+			bool bIsIdAlreadyInList = false;
+			int IdIndexInList = -1;
+
+			for(int i=0; i<EventDataCache.Num(); i++)
+			{
+				if(EventDataCache[i].ObjectId == NewEventData.ObjectId)
+				{
+					bIsIdAlreadyInList = true;
+					IdIndexInList = i;
+					break;
+				}
+			}
+
+			if(bIsIdAlreadyInList)
+			{
+				//Update already extracted event for this id
+				EventDataCache[IdIndexInList].EventType = NewEventData.EventType;
+				EventDataCache[IdIndexInList].AugmentaObject = NewEventData.AugmentaObject;
+			} else
+			{
+				//Add new event for this id
+				EventDataCache.Add(NewEventData);
+			}
+		}
+
+		for (FAugmentaEventData Event : EventDataCache)
+		{
+			PropagateLiveLinkEventFromEventData(Event);
+		}
+
+		UE_LOG(LogLiveLinkAugmenta, Verbose, TEXT("LiveLinkAugmentaManager: Propagated %d of %d Augmenta events after sorting."), EventDataCache.Num(), QueueEventCount);
+	}
+}
+
+void ALiveLinkAugmentaManager::PropagateLiveLinkEventFromEventData(FAugmentaEventData EventData)
+{
+	//Check if we have a valid Live Link source to propagate data from
+	if(!bIsConnected)
+	{
+		return;
+	}
+
+	switch (EventData.EventType)
+	{
+	case 0: //Scene updated
+	{
+		const FLiveLinkAugmentaScene AugmentaScene = LiveLinkAugmentaSource->GetAugmentaScene();
+		OnAugmentaSceneUpdated.Broadcast(AugmentaScene);
+		UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Propagating Scene Updated event."));
+	}
+		break;
+
+	case 1: //Video Output updated
+	{
+		const FLiveLinkAugmentaVideoOutput AugmentaVideoOutput = LiveLinkAugmentaSource->GetAugmentaVideoOutput();
+		OnAugmentaVideoOutputUpdated.Broadcast(AugmentaVideoOutput);
+		UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Propagating Video Output Updated event."));
+	}
+		break;
+
+	case 2: //Object entered
+	{
+		OnAugmentaObjectEntered.Broadcast(EventData.AugmentaObject);
+		UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Propagating Object Entered event for object %d."), EventData.ObjectId);
+	}
+		break;
+
+	case 3: //Object updated
+	{
+		OnAugmentaObjectUpdated.Broadcast(EventData.AugmentaObject);
+		UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Propagating Object Updated event for object %d."), EventData.ObjectId);
+	}
+		break;
+
+	case 4: //Object left
+	{
+		OnAugmentaObjectLeft.Broadcast(EventData.AugmentaObject);
+		UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Propagating Object Left event for object %d."), EventData.ObjectId);
+	}
+		break;
+
+	default:
+
+		break;
 	}
 }
 
