@@ -127,6 +127,7 @@ void ALiveLinkAugmentaManager::SearchLiveLinkSource()
 		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectEntered.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectEntered);
 		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectUpdated);
 		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectWillLeave.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectWillLeave);
+		LiveLinkAugmentaSource->OnLiveLinkAugmentaSourceDestroyed.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaSourceDestroyed);
 
 		bIsConnected = true;
 	}
@@ -211,8 +212,24 @@ void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectWillLeave(FLiveLinkAugmen
 	UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Received event from Live Link: Object %d will leave."), AugmentaObject.Id);
 }
 
+void ALiveLinkAugmentaManager::OnLiveLinkAugmentaSourceDestroyed()
+{
+	bIsConnected = false;
+	LiveLinkAugmentaSource = nullptr;
+
+	//Start searching for a new Live Link Source
+	GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, SourceSearchPeriod, false);
+
+	UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaManager: Connected Live Link source was destroyed, restarting source search."));
+}
+
 void ALiveLinkAugmentaManager::PropagateLiveLinkEvents()
 {
+	//Do not propagate anything when no source is connected
+	if(!bIsConnected)
+	{
+		return;
+	}
 
 	if(ensure(AugmentaEventDataQueue))
 	{

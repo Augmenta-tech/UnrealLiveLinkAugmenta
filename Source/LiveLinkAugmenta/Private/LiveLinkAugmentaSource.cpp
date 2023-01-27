@@ -72,6 +72,11 @@ FLiveLinkAugmentaSource::~FLiveLinkAugmentaSource()
 		Socket = nullptr;
 	}
 
+	if(OnLiveLinkAugmentaSourceDestroyed.IsBound())
+	{
+		OnLiveLinkAugmentaSourceDestroyed.Execute();
+	}
+
 	UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Closed scene %s with IP address %s"), *SceneName.ToString(), *DeviceEndpoint.ToString());
 }
 

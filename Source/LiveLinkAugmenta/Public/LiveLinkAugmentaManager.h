@@ -169,6 +169,7 @@ private:
 	void OnLiveLinkAugmentaObjectEntered(FLiveLinkAugmentaObject AugmentaObject);
 	void OnLiveLinkAugmentaObjectUpdated(FLiveLinkAugmentaObject AugmentaObject);
 	void OnLiveLinkAugmentaObjectWillLeave(FLiveLinkAugmentaObject AugmentaObject);
+	void OnLiveLinkAugmentaSourceDestroyed();
 
 	void PropagateLiveLinkEvents();
 	void PropagateLiveLinkEventFromEventData(FAugmentaEventData EventData);
