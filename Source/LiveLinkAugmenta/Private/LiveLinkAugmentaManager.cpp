@@ -69,6 +69,16 @@ bool ALiveLinkAugmentaManager::GetAugmentaObjects(TMap<int, FLiveLinkAugmentaObj
 	return false;
 }
 
+bool ALiveLinkAugmentaManager::GetAugmentaObjectById(FLiveLinkAugmentaObject& AugmentaObject, int Id)
+{
+	if (bIsConnected)
+	{
+		return LiveLinkAugmentaSource->GetAugmentaObjectById(AugmentaObject, Id);
+	}
+
+	return false;
+}
+
 int ALiveLinkAugmentaManager::GetAugmentaObjectsCount()
 {
 	return bIsConnected ? LiveLinkAugmentaSource->GetAugmentaObjectsCount() : 0;

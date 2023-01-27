@@ -146,6 +146,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Augmenta|Objects")
 	bool GetAugmentaObjects(TMap<int, FLiveLinkAugmentaObject>& AugmentaObjects);
 
+	/**
+	*  Get the Augmenta Object with specific Id
+	*  @param  AugmentaObject       The returned AugmentaObject
+	*  @param  Id					The desired object Id
+	*  @return FALSE if no object with the desired Id was found
+	*/
+	UFUNCTION(BlueprintPure, Category = "Augmenta|Objects")
+	bool GetAugmentaObjectById(FLiveLinkAugmentaObject& AugmentaObject, int Id);
+
 	// Get Augmenta objects count
 	UFUNCTION(BlueprintPure, Category = "Augmenta|Objects")
 	int GetAugmentaObjectsCount();
