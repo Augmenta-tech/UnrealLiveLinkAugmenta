@@ -92,7 +92,7 @@ The exposed events of the Augmenta manager are described below.
 
 An example of usage of the Augmenta manager is shown in the L_LiveLinkAugmentaDemo_AugmentaManager level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo).
 
-In this level, a blueprint derived from the Augmenta manager is added in the scene to load a Live Link preset and a AugmentaVisualizer blueprint connects to the manager events in order to display debug objects for the Augmenta scene, video outputs and objects.
+In this level, a blueprint derived from the Augmenta manager is added in the scene to load a Live Link preset and a custom AugmentaVisualizer blueprint connects to the manager events in order to display debug objects for the Augmenta scene, video outputs and objects.
 
 ### Creating and loading Live Link presets
 
