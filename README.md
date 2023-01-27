@@ -88,7 +88,7 @@ The exposed events of the Augmenta manager are described below.
 | OnAugmentaObjectEntered | Fired when a new Augmenta object entered the scene. |
 | OnAugmentaObjectUpdated | Fired when an Augmenta object as been updated. |
 | OnAugmentaObjectLeft | Fired when an Augmenta object left the scene. |
-| OnAugmentaSourceDestroyed | Fired when the Augmenta source that this manager is connected to is being destroyed. |
+| OnAugmentaSourceDestroyed | Fired when the Augmenta source that this manager is connected to is destroyed. |
 
 An example of usage of the Augmenta manager is shown in the L_LiveLinkAugmentaDemo_AugmentaManager level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo).
 
