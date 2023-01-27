@@ -95,7 +95,7 @@ public:
 
 	// Time in seconds between each Live Link source search
 	UPROPERTY(EditAnywhere, Category = "Augmenta|Live Link")
-	float SourceSearchPeriod;
+	float SourceSearchDelay;
 
 	// Is this manager connected to a Live Link Source
 	UPROPERTY(VisibleAnywhere, Category = "Augmenta|Live Link")

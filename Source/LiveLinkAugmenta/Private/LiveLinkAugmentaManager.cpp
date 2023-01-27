@@ -15,7 +15,7 @@ ALiveLinkAugmentaManager::ALiveLinkAugmentaManager()
 
 	SceneName = "AugmentaMain";
 	bIsConnected = false;
-	SourceSearchPeriod = 2.0f;
+	SourceSearchDelay = 2.0f;
 }
 
 // Called when the game starts or when spawned
@@ -36,7 +36,7 @@ void ALiveLinkAugmentaManager::BeginPlay()
 	}
 
 	//Wait 5 seconds for the preset to load then try to find Live Link Source
-	GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, 5, false);
+	GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, SourceSearchDelay, false);
 }
 
 // Called every frame
@@ -114,8 +114,8 @@ void ALiveLinkAugmentaManager::SearchLiveLinkSource()
 
 	if (LiveLinkAugmentaSource == nullptr) {
 		//Try again in sourceCheckPeriod seconds
-		GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, SourceSearchPeriod, false);
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Could not find an Augmenta source named %s. Trying again in %f seconds."), *SceneName.ToString(), SourceSearchPeriod);
+		GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, SourceSearchDelay, false);
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaManager: Could not find an Augmenta source named %s. Trying again in %f seconds."), *SceneName.ToString(), SourceSearchDelay);
 	}
 	else {
 		GetWorld()->GetTimerManager().ClearTimer(SearchSourceTimerHandle);
@@ -218,7 +218,7 @@ void ALiveLinkAugmentaManager::OnLiveLinkAugmentaSourceDestroyed()
 	LiveLinkAugmentaSource = nullptr;
 
 	//Start searching for a new Live Link Source
-	GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, SourceSearchPeriod, false);
+	GetWorld()->GetTimerManager().SetTimer(SearchSourceTimerHandle, this, &ALiveLinkAugmentaManager::SearchLiveLinkSource, SourceSearchDelay, false);
 
 	UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaManager: Connected Live Link source was destroyed, restarting source search."));
 }
