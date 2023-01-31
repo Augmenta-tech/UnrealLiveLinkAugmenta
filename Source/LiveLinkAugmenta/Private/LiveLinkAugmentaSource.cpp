@@ -287,7 +287,7 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 
 			AugmentaScene.Scale.X = AugmentaScene.Size.Y;
 			AugmentaScene.Scale.Y = AugmentaScene.Size.X;
-			AugmentaScene.Scale.Z = 0;
+			AugmentaScene.Scale.Z = 1;
 
 			//Update scene subject
 			FLiveLinkFrameDataStruct SceneFrameData(FLiveLinkTransformFrameData::StaticStruct());
@@ -321,7 +321,7 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 
 			AugmentaVideoOutput.Scale.X = AugmentaVideoOutput.Size.Y;
 			AugmentaVideoOutput.Scale.Y = AugmentaVideoOutput.Size.X;
-			AugmentaVideoOutput.Scale.Z = 0;
+			AugmentaVideoOutput.Scale.Z = 1;
 
 			//Update video output subject
 			FLiveLinkFrameDataStruct VideoOutputFrameData(FLiveLinkTransformFrameData::StaticStruct());
