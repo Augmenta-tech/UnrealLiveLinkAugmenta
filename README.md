@@ -43,15 +43,15 @@ The Augmenta data received by this plugin can be used via the Live Link subjects
 
 1. Open the Live Link window by clicking Window -> Virtual Production -> Live Link.
 
-![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Documentation/Images/LiveLinkSourceCreation_1.jpg)
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo/blob/master/Resources/Documentation/Images/LiveLinkSourceCreation_1.jpg)
 
 2. In the Live Link window click on Source, LiveLinkAugmenta Source, enter your IP address, port and scene name, then click Add.
 
-![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Documentation/Images/LiveLinkSourceCreation_2.jpg)
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo/blob/master/Resources/Documentation/Images/LiveLinkSourceCreation_2.jpg)
 
 3. If you are receiving Augmenta data (from a node, Fusion, or the simulator), you should see the received Augmenta elements in the subjects list.
 
-![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Documentation/Images/LiveLinkSourceCreation_3.jpg)
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo/blob/master/Resources/Documentation/Images/LiveLinkSourceCreation_3.jpg)
 
 
 ### Using the Live Link subjects
@@ -60,7 +60,7 @@ This is the standard Live Link usage. The Augmenta elements (scene, videoOutput 
 
 You can use those subjects to control the transforms of actors in your scene through the LiveLinkComponentController.
 
-![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Documentation/Images/LiveLinkComponentController.jpg))
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo/blob/master/Resources/Documentation/Images/LiveLinkComponentController.jpg))
 
 You can check the L_LiveLinkAugmentaDemo_LiveLinkSubjects level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo) for an example of this usage.
 
@@ -98,11 +98,11 @@ In this level, a blueprint derived from the Augmenta manager is added in the sce
 
 Live Link presets can be created in the Live Link window by clicking on Presets and Save as. 
 
-![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Documentation/Images/LiveLinkPresetCreation.jpg))
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo/blob/master/Resources/Documentation/Images/LiveLinkPresetCreation.jpg))
 
 This allows to save your Live Link sources configuration and reload it at runtime. To do so, you can specify a default preset for your project to load at start up in the Project Settings -> Live Link.
 
-![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta/blob/main/Resources/Documentation/Images/LiveLinkProjectSettings.jpg))
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo/blob/master/Resources/Documentation/Images/LiveLinkProjectSettings.jpg))
 
 Or if you are using an Augmenta manager, you can specify the Live Link preset to load in the Augmenta manager directly. Note that if you use several Augmenta managers in the same level, you should have only one of them responsible for loading a Live Link preset. 
 
