@@ -7,6 +7,11 @@
 
 #include "LiveLinkAugmentaSource.h"
 
+#include "Engine/World.h"
+#include "TimerManager.h"
+#include "Features/IModularFeatures.h"
+
+
 // Sets default values
 ALiveLinkAugmentaManager::ALiveLinkAugmentaManager()
 {
