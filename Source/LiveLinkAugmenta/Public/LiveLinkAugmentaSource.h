@@ -18,7 +18,13 @@
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
 
+THIRD_PARTY_INCLUDES_START
+// Disable macro redefinition warning
+#pragma warning(push)
+#pragma warning(disable:4005)
 #include "oscpp/server.hpp"
+#pragma warning(pop)
+THIRD_PARTY_INCLUDES_END
 
 struct ULiveLinkAugmentaSettings;
 

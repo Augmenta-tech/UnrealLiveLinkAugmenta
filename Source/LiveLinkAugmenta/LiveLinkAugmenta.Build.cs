@@ -31,5 +31,15 @@ public class LiveLinkAugmenta : ModuleRules
 				"SlateCore",
 			}
 			);
+
+		// 3rd party dependencies
+		AddThirdPartyDependencies(Target);
+	}
+
+	public void AddThirdPartyDependencies(ReadOnlyTargetRules Target) {
+
+		string ThirdPartyPath = Path.GetFullPath(Path.Combine(ModuleDirectory, "../ThirdParty/"));
+
+		PublicIncludePaths.Add(ThirdPartyPath);
 	}
 }
