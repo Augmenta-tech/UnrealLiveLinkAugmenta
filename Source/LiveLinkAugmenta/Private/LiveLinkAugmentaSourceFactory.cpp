@@ -1,4 +1,4 @@
-// Copyright Augmenta, All Rights Reserved.
+// Copyright Augmenta 2023, All Rights Reserved.
 
 #include "LiveLinkAugmentaSourceFactory.h"
 #include "LiveLinkAugmentaSource.h"
