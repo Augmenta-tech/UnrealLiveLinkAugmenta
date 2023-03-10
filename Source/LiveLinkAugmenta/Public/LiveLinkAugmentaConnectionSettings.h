@@ -10,19 +10,19 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaConnectionSettings
 {
 	GENERATED_BODY()
 
-	/** IP address of the Augmenta server */
+	/** IP address of the receiving UDP socket */
 	UPROPERTY(EditAnywhere, Category = "Connection Settings")
-	FString IPAddress = TEXT("127.0.0.1");
+	FString IPAddress = TEXT("0.0.0.0");
 
-	/** UDP port number */
+	/** Port number of the receiving UDP socket */
 	UPROPERTY(EditAnywhere, Category = "Connection Settings")
-	uint16 UDPPortNumber = 12000;
+	uint16 PortNumber = 12000;
 
-	/** Maximum rate (in Hz) at which to ask the Augmenta server to update */
+	/** Local update rate of the source */
 	UPROPERTY(EditAnywhere, Category = "Connection Settings", meta = (ClampMin = 1, ClampMax = 1000))
 	uint32 LocalUpdateRateInHz = 120;
 
 	/** Augmenta scene name */
-	UPROPERTY(EditAnywhere, Category = "Connection Settings")
+	UPROPERTY(EditAnywhere, Category = "Augmenta Settings")
 	FName SceneName = TEXT("AugmentaMain");
 };

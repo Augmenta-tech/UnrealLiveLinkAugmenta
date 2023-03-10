@@ -23,10 +23,10 @@ FLiveLinkAugmentaSource::FLiveLinkAugmentaSource(const FLiveLinkAugmentaConnecti
 {
 	SourceStatus = LOCTEXT("SourceStatus_NoData", "No data");
 	SourceType = LOCTEXT("SourceType_Augmenta", "Augmenta");
-	SourceMachineName = FText::Format(LOCTEXT("AugmentaSourceMachineName", "{0}:{1}"), FText::FromString(ConnectionSettings.IPAddress), FText::AsNumber(ConnectionSettings.UDPPortNumber, &FNumberFormattingOptions::DefaultNoGrouping()));
+	SourceMachineName = FText::Format(LOCTEXT("AugmentaSourceMachineName", "{0}:{1}"), FText::FromString(ConnectionSettings.IPAddress), FText::AsNumber(ConnectionSettings.PortNumber, &FNumberFormattingOptions::DefaultNoGrouping()));
 
 	FIPv4Address::Parse(ConnectionSettings.IPAddress, DeviceEndpoint.Address);
-	DeviceEndpoint.Port = ConnectionSettings.UDPPortNumber;
+	DeviceEndpoint.Port = ConnectionSettings.PortNumber;
 
 	Socket = FUdpSocketBuilder(TEXT("AugmentaListenerSocket"))
 		.AsNonBlocking()
@@ -316,6 +316,7 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 
 			AugmentaVideoOutput.Position.X = (AugmentaScene.Position.X + AugmentaScene.Size.Y * .5f * MetersToUnrealUnits) - AugmentaVideoOutput.Offset.Y - AugmentaVideoOutput.Size.Y * .5f * MetersToUnrealUnits;
 			AugmentaVideoOutput.Position.Y = (AugmentaScene.Position.Y - AugmentaScene.Size.X * .5f * MetersToUnrealUnits) + AugmentaVideoOutput.Offset.X + AugmentaVideoOutput.Size.X * .5f * MetersToUnrealUnits;
+			AugmentaVideoOutput.Position.Z = AugmentaScene.Position.Z;
 
 			AugmentaVideoOutput.Rotation = AugmentaScene.Rotation;
 
