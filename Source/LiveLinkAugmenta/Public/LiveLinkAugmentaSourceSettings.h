@@ -29,7 +29,7 @@ public:
 
 	/** Offset object position vertically according to its height  */
 	UPROPERTY(EditAnywhere, Category = "Augmenta")
-	bool bApplyObjectHeight = true;
+	bool bApplyObjectHeight = false;
 
 	/** Use centroid position as position instead of bounding box center when using scale */
 	UPROPERTY(EditAnywhere, Category = "Augmenta")
