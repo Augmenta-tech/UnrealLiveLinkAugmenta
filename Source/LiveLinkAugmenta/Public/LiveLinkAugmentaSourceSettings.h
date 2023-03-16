@@ -35,6 +35,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Augmenta")
 	bool bOffsetObjectPositionOnCentroid = true;
 
+	/** Disable the creation and update of Live Link subjects from received Augmenta data */
+	UPROPERTY(EditAnywhere, Category = "Augmenta|Optimization")
+	bool bDisableSubjectsUpdate = false;
+
 	/** Live Link source reference */
 	FLiveLinkAugmentaSource* SourceReference;
 };

@@ -99,6 +99,7 @@ void FLiveLinkAugmentaSource::InitializeSettings(ULiveLinkSourceSettings* Settin
 		bApplyObjectHeight = SavedSourceSettings->bApplyObjectHeight;
 		bApplyObjectScale = SavedSourceSettings->bApplyObjectScale;
 		bOffsetObjectPositionOnCentroid = SavedSourceSettings->bOffsetObjectPositionOnCentroid;
+		bDisableSubjectsUpdate = SavedSourceSettings->bDisableSubjectsUpdate;
 	}
 }
 
@@ -123,6 +124,7 @@ void FLiveLinkAugmentaSource::OnSettingsChanged(ULiveLinkSourceSettings* Setting
 			bApplyObjectHeight = SavedSourceSettings->bApplyObjectHeight;
 			bApplyObjectScale = SavedSourceSettings->bApplyObjectScale;
 			bOffsetObjectPositionOnCentroid = SavedSourceSettings->bOffsetObjectPositionOnCentroid;
+			bDisableSubjectsUpdate = SavedSourceSettings->bDisableSubjectsUpdate;
 		}
 	}
 }
@@ -289,14 +291,16 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 			AugmentaScene.Scale.Y = AugmentaScene.Size.X;
 			AugmentaScene.Scale.Z = 1;
 
-			//Update scene subject
-			FLiveLinkFrameDataStruct SceneFrameData(FLiveLinkTransformFrameData::StaticStruct());
-			FLiveLinkTransformFrameData* SceneTransformFrameData = SceneFrameData.Cast<FLiveLinkTransformFrameData>();
+			if (!bDisableSubjectsUpdate) {
+				//Update scene subject
+				FLiveLinkFrameDataStruct SceneFrameData(FLiveLinkTransformFrameData::StaticStruct());
+				FLiveLinkTransformFrameData* SceneTransformFrameData = SceneFrameData.Cast<FLiveLinkTransformFrameData>();
 
-			SceneTransformFrameData->Transform = FTransform(AugmentaScene.Rotation, AugmentaScene.Position, AugmentaScene.Scale);
+				SceneTransformFrameData->Transform = FTransform(AugmentaScene.Rotation, AugmentaScene.Position, AugmentaScene.Scale);
 
-			FName CurrentName = FName(SceneName.ToString() + "_Scene");
-			Send(&SceneFrameData, CurrentName);
+				FName CurrentName = FName(SceneName.ToString() + "_Scene");
+				Send(&SceneFrameData, CurrentName);
+			}
 
 			//Send scene updated event
 			if (OnLiveLinkAugmentaSceneUpdated.IsBound())
@@ -324,14 +328,16 @@ void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packe
 			AugmentaVideoOutput.Scale.Y = AugmentaVideoOutput.Size.X;
 			AugmentaVideoOutput.Scale.Z = 1;
 
-			//Update video output subject
-			FLiveLinkFrameDataStruct VideoOutputFrameData(FLiveLinkTransformFrameData::StaticStruct());
-			FLiveLinkTransformFrameData* VideoOutputTransformFrameData = VideoOutputFrameData.Cast<FLiveLinkTransformFrameData>();
+			if (!bDisableSubjectsUpdate) {
+				//Update video output subject
+				FLiveLinkFrameDataStruct VideoOutputFrameData(FLiveLinkTransformFrameData::StaticStruct());
+				FLiveLinkTransformFrameData* VideoOutputTransformFrameData = VideoOutputFrameData.Cast<FLiveLinkTransformFrameData>();
 
-			VideoOutputTransformFrameData->Transform = FTransform(AugmentaVideoOutput.Rotation, AugmentaVideoOutput.Position, AugmentaVideoOutput.Scale);
+				VideoOutputTransformFrameData->Transform = FTransform(AugmentaVideoOutput.Rotation, AugmentaVideoOutput.Position, AugmentaVideoOutput.Scale);
 
-			FName CurrentName = FName(SceneName.ToString() + "_VideoOutput");
-			Send(&VideoOutputFrameData, CurrentName);
+				FName CurrentName = FName(SceneName.ToString() + "_VideoOutput");
+				Send(&VideoOutputFrameData, CurrentName);
+			}
 
 			//Send video output updated event
 			if (OnLiveLinkAugmentaVideoOutputUpdated.IsBound())
@@ -467,8 +473,10 @@ void FLiveLinkAugmentaSource::UpdateAugmentaObject(FLiveLinkAugmentaObject Augme
 	//Update existing object
 	AugmentaObjects[AugmentaObject.Id] = AugmentaObject;
 
-	//Update augmenta object subject
-	UpdateAugmentaObjectSubject(AugmentaObject);
+	if (!bDisableSubjectsUpdate) {
+		//Update augmenta object subject
+		UpdateAugmentaObjectSubject(AugmentaObject);
+	}
 
 	//Send object updated event
 	if (OnLiveLinkAugmentaObjectUpdated.IsBound())
@@ -479,11 +487,13 @@ void FLiveLinkAugmentaSource::UpdateAugmentaObject(FLiveLinkAugmentaObject Augme
 
 void FLiveLinkAugmentaSource::RemoveAugmentaObject(FLiveLinkAugmentaObject AugmentaObject)
 {
-	FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(AugmentaObject.Oid));
+	if (!bDisableSubjectsUpdate) {
+		FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(AugmentaObject.Oid));
 
-	if (EncounteredSubjects.Contains(CurrentName)) {
-		EncounteredSubjects.Remove(CurrentName);
-		Client->RemoveSubject_AnyThread({ SourceGuid, CurrentName });
+		if (EncounteredSubjects.Contains(CurrentName)) {
+			EncounteredSubjects.Remove(CurrentName);
+			Client->RemoveSubject_AnyThread({ SourceGuid, CurrentName });
+		}
 	}
 
 	//Send object will leave event

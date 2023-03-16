@@ -86,19 +86,19 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Live link preset to load
+	// Live link preset to load at start. Can be left empty to avoid replacing default Live Link preset.
 	UPROPERTY(EditAnywhere, Category = "Augmenta|Live Link")
 	ULiveLinkPreset *LiveLinkPreset;
 
-	// Live link scene name
+	// Scene name of the Live link Augmenta source to attach to.
 	UPROPERTY(EditAnywhere, Category = "Augmenta|Live Link")
 	FName SceneName;
 
-	// Time in seconds between each Live Link source search
+	// Time in seconds between each Live Link source search.
 	UPROPERTY(EditAnywhere, Category = "Augmenta|Live Link")
 	float SourceSearchDelay;
 
-	// Is this manager connected to a Live Link Source
+	// Is this manager currently connected to a Live Link Source ?
 	UPROPERTY(VisibleAnywhere, Category = "Augmenta|Live Link")
 	bool bIsConnected;
 

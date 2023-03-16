@@ -255,7 +255,7 @@ void ALiveLinkAugmentaManager::PropagateLiveLinkEvents()
 
 		if(QueueEventCount >= QueueCapacity * EventQueueCapacityWarningThreshold)
 		{
-			UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaManager: Events count in the Augmenta event queue is reaching critical level: %d events while the total capacity is %d. You might need to decrease your Augmenta send rate or augment the event queue capacity."), QueueEventCount, QueueCapacity);
+			UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaManager: Events count in the Augmenta event queue is reaching critical level: %d events while the total capacity is %d. You might need to decrease your Augmenta send rate."), QueueEventCount, QueueCapacity);
 		}
 
 		EventDataCache.Empty();

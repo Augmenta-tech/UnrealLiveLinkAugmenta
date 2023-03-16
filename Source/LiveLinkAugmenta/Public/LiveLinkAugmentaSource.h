@@ -185,6 +185,9 @@ private:
 	// Use centroid position as position instead of bounding box center when using scale
 	bool bOffsetObjectPositionOnCentroid;
 
+	// Disable the creation and update of Live Link subjects from received Augmenta data
+	bool bDisableSubjectsUpdate;
+
 	// Augmenta scene parameters
 	FName SceneName;
 	FLiveLinkAugmentaScene AugmentaScene;
