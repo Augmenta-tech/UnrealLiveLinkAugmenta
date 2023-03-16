@@ -11,7 +11,7 @@
 #include "GameFramework/Actor.h"
 #include "LiveLinkAugmentaManager.generated.h"
 
-#define AUGMENTAEVENTQUEUECAPACITY 1024
+#define AUGMENTAEVENTQUEUECAPACITY 2048
 
 /** Forward Declarations */
 class ULiveLinkPreset;
