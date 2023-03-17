@@ -35,6 +35,7 @@ The Live Link Augmenta Source has the following parameters :
 | ApplyObjectScale | If true, the Augmenta object bounding box size is used as the scale of the subject transform. |
 | ApplyObjectHeight | If true, the position of the subject is moved up by half the Augmenta object height (i.e. it is moved up so that the bottom of the bounding box is at the Augmenta scene level). |
 | OffsetObjectPositionOnCentroid | If true, the centroid of the Augmenta object is used for the subject transform position. Otherwise the bounding box center is used. This parameter is only used when ApplyObjectScale is true. If ApplyObjectScale is false, the subject transform position will always be the centroid of the Augmenta object. |
+| DisableSubjectsUpdate | Disable the creation and update of Live Link subjects from received Augmenta data to improve performance when they are not needed. |
 
 ## Usage
 
@@ -63,7 +64,7 @@ You can use those subjects to control the transforms of actors in your scene thr
 
 ![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo/blob/marketplace-demo/Resources/Documentation/Images/LiveLinkComponentController.jpg)
 
-You can check the L_LiveLinkAugmentaDemo_LiveLinkSubjects level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo) for an example of this usage.
+You can check the LiveLinkAugmentaDemo_LiveLinkSubjects level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo) for an example of this usage.
 
 
 ### Using the Augmenta Manager
@@ -91,9 +92,11 @@ The exposed events of the Augmenta manager are described below.
 | OnAugmentaObjectLeft | Fired when an Augmenta object left the scene. |
 | OnAugmentaSourceDestroyed | Fired when the Augmenta source that this manager is connected to is destroyed. |
 
-An example of usage of the Augmenta manager is shown in the L_LiveLinkAugmentaDemo_AugmentaManager level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo).
+An example of usage of the Augmenta manager is shown in the LiveLinkAugmentaDemo_AugmentaManager level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo).
 
 In this level, a blueprint derived from the Augmenta manager is added in the scene to load a Live Link preset and a custom AugmentaVisualizer blueprint connects to the manager events in order to display debug objects for the Augmenta scene, video outputs and objects.
+
+Note that if you are only using the Augmenta manager and not the Live link subjects, you can disable the Live link subjects update in the Augmenta source.
 
 ### Creating and loading Live Link presets
 

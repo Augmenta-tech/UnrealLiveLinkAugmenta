@@ -19,23 +19,23 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Augmenta")
 	FName SceneName;
 
-	/** Time before a not updated object is removed */
-	UPROPERTY(EditAnywhere, Category = "Augmenta")
+	/** Any object not updated for this duration is removed. */
+	UPROPERTY(EditAnywhere, Category = "Augmenta|Augmenta Objects")
 	float TimeoutDuration = 1;
 
-	/** Use bounding box size as object scale */
-	UPROPERTY(EditAnywhere, Category = "Augmenta")
+	/** Use bounding box size as object scale. */
+	UPROPERTY(EditAnywhere, Category = "Augmenta|Augmenta Objects")
 	bool bApplyObjectScale = true;
 
-	/** Offset object position vertically according to its height  */
-	UPROPERTY(EditAnywhere, Category = "Augmenta")
+	/** Offset object position vertically according to its height.  */
+	UPROPERTY(EditAnywhere, Category = "Augmenta|Augmenta Objects")
 	bool bApplyObjectHeight = false;
 
-	/** Use centroid position as position instead of bounding box center when using scale */
-	UPROPERTY(EditAnywhere, Category = "Augmenta")
+	/** Use centroid position as position instead of bounding box center when using scale. */
+	UPROPERTY(EditAnywhere, Category = "Augmenta|Augmenta Objects")
 	bool bOffsetObjectPositionOnCentroid = true;
 
-	/** Disable the creation and update of Live Link subjects from received Augmenta data */
+	/** Disable the creation and update of Live Link subjects from received Augmenta data. */
 	UPROPERTY(EditAnywhere, Category = "Augmenta|Optimization")
 	bool bDisableSubjectsUpdate = false;
 
