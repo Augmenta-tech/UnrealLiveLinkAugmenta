@@ -96,7 +96,7 @@ An example of usage of the Augmenta manager is shown in the LiveLinkAugmentaDemo
 
 In this level, a blueprint derived from the Augmenta manager is added in the scene to load a Live Link preset and a custom AugmentaVisualizer blueprint connects to the manager events in order to display debug objects for the Augmenta scene, video outputs and objects.
 
-Note that if you are only using the Augmenta manager and not the Live link subjects, you can disable the Live link subjects update in the Augmenta source.
+>Note that if you are only using the Augmenta manager and not the Live link subjects, you can disable the Live link subjects update in the Augmenta source.
 
 ### Creating and loading Live Link presets
 
