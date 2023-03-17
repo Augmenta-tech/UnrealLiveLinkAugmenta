@@ -21,6 +21,12 @@ public class LiveLinkAugmenta : ModuleRules
 			}
 			);
 
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"DisplayCluster"
+			}
+			);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
