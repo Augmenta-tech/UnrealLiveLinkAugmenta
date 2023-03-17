@@ -71,6 +71,16 @@ You can check the LiveLinkAugmentaDemo_LiveLinkSubjects level of the [Unreal Liv
 
 The Augmenta Manager exposes the complete Augmenta data of the Live Link Source to C++ or Blueprints for advanced usage such as spawning objects at runtime or using more advanced Augmenta data. Additionally, the Augmenta Manager transfer Augmenta events from the Live Link source thread to the game thread (for blueprints).
 
+The parameters of the Augmenta manager are described below.
+
+| Parameter | Description |
+| --- | --- |
+| LiveLinkPreset | Live link preset to load at start. This can be left empty to avoid replacing an existing loaded Live Link preset. |
+| SceneName | Scene name of the Live link Augmenta source to attach to. |
+| SourceSearchDelay | Delay between each source search, as long as the manager is not connected to a Live link source. |
+| IsConnected | Read only, true if the manager is connected to a Live link source. |
+| EventQueueCapacityWarningThreshold | The event count threshold (in percentage of the event queue capacity) above which warnings are issued. If the event queue capacity is reached, it means the Live link source receives messages faster than the manager can propagate them. This can happens if your Augmenta data rate is too high, or your game framerate is too low. In this case, incoming events from the Live link source might be missed by the manager. The event queue currently has a capacity of 2047. This means you should not receive more than 2047 augmenta messages during every frame of your game. This can be manually increased in the LiveLinkAugmentaManager.h file. |
+
 The exposed methods of the Augmenta manager are described below.
 
 | Method | Description |
@@ -97,6 +107,25 @@ An example of usage of the Augmenta manager is shown in the LiveLinkAugmentaDemo
 In this level, a blueprint derived from the Augmenta manager is added in the scene to load a Live Link preset and a custom AugmentaVisualizer blueprint connects to the manager events in order to display debug objects for the Augmenta scene, video outputs and objects.
 
 >Note that if you are only using the Augmenta manager and not the Live link subjects, you can disable the Live link subjects update in the Augmenta source.
+
+### Using the Augmenta Cluster Manager
+
+The AugmentaClusterManager is a C++ class that binds to an existing AugmentaManager to send the event from the AugmentaManager through a nDisplay cluster via cluster events. This allows to propagate the Augmenta events through the cluster in a synchronized manner. This framework is described in the diagram below.
+
+![](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo/blob/marketplace-demo/Resources/Documentation/Images/AugmentaClusterManagerDiagram.jpg)
+
+An example of usage of the Augmenta cluster manager is shown in the LiveLinkAugmentaDemo_AugmentaClusterManager_nDisplay level of the [Unreal Live Link Augmenta Demo project](https://github.com/Augmenta-tech/UnrealLiveLinkAugmenta-Demo).
+
+In this level, the AugmentaClusterManager propagate cluster events from the incoming Augmenta events from the AugmentaManager, while the AugmentaClusterVisualizer listen to the AugmentaClusterManager events for the instantiation and update of the visualization objects.
+
+The Live Link Augmenta Cluster Manager has the following parameters :
+
+| Parameter | Description |
+| --- | --- |
+| AugmentaManager | The Augmenta manager to link this cluster manager to. |
+| UseBinaryClusterEvents | If true, Augmenta events are propagated to the cluster using binary cluster events, otherwise json cluster events are used. Binary cluster events are better for data throughput and latency. |
+| BinaryEventIdOffset | Binary cluster events are identified by a unique id (an integer). Different binary cluster events sharing the same id will lead to interpretation issues and potential crashes. The cluster manager use ids 0 to 5 by default, but they can be offsetted to prevent overlapping with other event ids using this parameter. |
+| SendReducedObjectData | If true, only the transform, id and age data of the Augmenta objects will be sent through cluster events to improve performance. This only works when using json cluster events. |
 
 ### Creating and loading Live Link presets
 
