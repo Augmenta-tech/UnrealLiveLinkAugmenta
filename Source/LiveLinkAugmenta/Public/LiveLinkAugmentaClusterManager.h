@@ -6,22 +6,16 @@
 #include "Cluster/IDisplayClusterClusterEventListener.h"
 
 #include "CoreMinimal.h"
+#include "LiveLinkAugmentaEventDispatcher.h"
 #include "Cluster/IDisplayClusterClusterManager.h"
 #include "GameFramework/Actor.h"
 #include "LiveLinkAugmentaClusterManager.generated.h"
 
 /** Forward Declarations */
-class ALiveLinkAugmentaManager;
 class IDisplayClusterClusterManager;
 
-/** Delegates */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaSceneUpdatedClusterEvent, const FLiveLinkAugmentaScene, AugmentaScene);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaObjectUpdatedClusterEvent, const FLiveLinkAugmentaObject, AugmentaObject);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAugmentaVideoOutputUpdatedClusterEvent, const FLiveLinkAugmentaVideoOutput, AugmentaVideoOutput);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAugmentaSourceDestroyedClusterEvent);
-
 UCLASS(BlueprintType, Category = "Augmenta")
-class LIVELINKAUGMENTA_API ALiveLinkAugmentaClusterManager : public AActor, public IDisplayClusterClusterEventListener
+class LIVELINKAUGMENTA_API ALiveLinkAugmentaClusterManager : public ALiveLinkAugmentaEventDispatcher, public IDisplayClusterClusterEventListener
 {
 	GENERATED_BODY()
 	
@@ -29,9 +23,9 @@ public:
 	// Sets default values for this actor's properties
 	ALiveLinkAugmentaClusterManager();
 
-	//Augmenta Manager to attach to.
+	//Augmenta Event Dispatcher to attach to.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Augmenta")
-	ALiveLinkAugmentaManager* AugmentaManager;
+	ALiveLinkAugmentaEventDispatcher* AugmentaEventDispatcher;
 
 	//Whether to use binary or json cluster events.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Augmenta|Cluster Events")
@@ -93,30 +87,6 @@ protected:
 	IDisplayClusterClusterManager* ClusterManager;
 
 public:
-
-	// A delegate that is fired when an Augmenta scene message is received.
-	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	FAugmentaSceneUpdatedClusterEvent OnAugmentaSceneUpdatedCluster;
-
-	// A delegate that is fired when an Augmenta video output (fusion) message is received.
-	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	FAugmentaVideoOutputUpdatedClusterEvent OnAugmentaVideoOutputUpdatedCluster;
-
-	// A delegate that is fired when a new Augmenta object entered the scene.
-	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	FAugmentaObjectUpdatedClusterEvent OnAugmentaObjectEnteredCluster;
-
-	// A delegate that is fired when an Augmenta object has been updated.
-	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	FAugmentaObjectUpdatedClusterEvent OnAugmentaObjectUpdatedCluster;
-
-	// A delegate that is fired when an Augmenta object has left the scene.
-	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	FAugmentaObjectUpdatedClusterEvent OnAugmentaObjectLeftCluster;
-
-	// A delegate that is fired when the Augmenta Live Link source is destroyed.
-	UPROPERTY(BlueprintAssignable, Category = "Augmenta|Events")
-	FAugmentaSourceDestroyedClusterEvent OnAugmentaSourceDestroyedCluster;
 
 	UFUNCTION(BlueprintNativeEvent)
 	void OnClusterEventJson(const FDisplayClusterClusterEventJson& Event);

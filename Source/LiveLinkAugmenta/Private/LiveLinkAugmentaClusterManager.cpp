@@ -3,8 +3,6 @@
 
 #include "LiveLinkAugmentaClusterManager.h"
 
-#include "LiveLinkAugmentaManager.h"
-
 #include "Cluster/IDisplayClusterClusterManager.h"
 #include "DisplayCluster/Public/IDisplayCluster.h"
 
@@ -14,7 +12,7 @@ ALiveLinkAugmentaClusterManager::ALiveLinkAugmentaClusterManager()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
-	AugmentaManager = nullptr;
+	AugmentaEventDispatcher = nullptr;
 	ClusterManager = nullptr;
 
 	bInitialized = false;
@@ -38,14 +36,14 @@ void ALiveLinkAugmentaClusterManager::BeginPlay()
 	}
 
 	//Bind to Augmenta Manager events
-	if(ensure(AugmentaManager))
+	if(ensure(AugmentaEventDispatcher))
 	{
-		AugmentaManager->OnAugmentaSceneUpdated.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendSceneUpdatedClusterEvent);
-		AugmentaManager->OnAugmentaVideoOutputUpdated.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendVideoOutputUpdatedClusterEvent);
-		AugmentaManager->OnAugmentaObjectEntered.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectEnteredClusterEvent);
-		AugmentaManager->OnAugmentaObjectUpdated.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectUpdatedClusterEvent);
-		AugmentaManager->OnAugmentaObjectLeft.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectLeftClusterEvent);
-		AugmentaManager->OnAugmentaSourceDestroyed.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendSourceDestroyedClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaSceneUpdated.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendSceneUpdatedClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaVideoOutputUpdated.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendVideoOutputUpdatedClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaObjectEntered.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectEnteredClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaObjectUpdated.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectUpdatedClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaObjectLeft.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectLeftClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaSourceDestroyed.AddDynamic(this, &ALiveLinkAugmentaClusterManager::SendSourceDestroyedClusterEvent);
 
 		bInitialized = true;
 
@@ -67,14 +65,14 @@ void ALiveLinkAugmentaClusterManager::EndPlay(const EEndPlayReason::Type EndPlay
 	}
 
 	//Unbind from Augmenta Manager
-	if (AugmentaManager && bInitialized)
+	if (AugmentaEventDispatcher && bInitialized)
 	{
-		AugmentaManager->OnAugmentaSceneUpdated.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendSceneUpdatedClusterEvent);
-		AugmentaManager->OnAugmentaVideoOutputUpdated.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendVideoOutputUpdatedClusterEvent);
-		AugmentaManager->OnAugmentaObjectEntered.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectEnteredClusterEvent);
-		AugmentaManager->OnAugmentaObjectUpdated.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectUpdatedClusterEvent);
-		AugmentaManager->OnAugmentaObjectLeft.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectLeftClusterEvent);
-		AugmentaManager->OnAugmentaSourceDestroyed.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendSourceDestroyedClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaSceneUpdated.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendSceneUpdatedClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaVideoOutputUpdated.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendVideoOutputUpdatedClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaObjectEntered.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectEnteredClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaObjectUpdated.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectUpdatedClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaObjectLeft.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendObjectLeftClusterEvent);
+		AugmentaEventDispatcher->OnAugmentaSourceDestroyed.RemoveDynamic(this, &ALiveLinkAugmentaClusterManager::SendSourceDestroyedClusterEvent);
 	}
 
 }
@@ -243,26 +241,26 @@ void ALiveLinkAugmentaClusterManager::OnClusterEventJson_Implementation(const FD
 {
 	if (Event.Name == "SceneUpdated")
 	{
-		OnAugmentaSceneUpdatedCluster.Broadcast(DeserializeJsonAugmentaScene(Event.Parameters));
+		OnAugmentaSceneUpdated.Broadcast(DeserializeJsonAugmentaScene(Event.Parameters));
 	} else if(Event.Name == "VideoOutputUpdated")
 	{
-		OnAugmentaVideoOutputUpdatedCluster.Broadcast(DeserializeJsonAugmentaVideoOutput(Event.Parameters));
+		OnAugmentaVideoOutputUpdated.Broadcast(DeserializeJsonAugmentaVideoOutput(Event.Parameters));
 	}
 	else if (Event.Name == "ObjectEntered")
 	{
-		OnAugmentaObjectEnteredCluster.Broadcast(DeserializeJsonAugmentaObject(Event.Parameters));
+		OnAugmentaObjectEntered.Broadcast(DeserializeJsonAugmentaObject(Event.Parameters));
 	}
 	else if (Event.Name == "ObjectUpdated")
 	{
-		OnAugmentaObjectUpdatedCluster.Broadcast(DeserializeJsonAugmentaObject(Event.Parameters));
+		OnAugmentaObjectUpdated.Broadcast(DeserializeJsonAugmentaObject(Event.Parameters));
 	}
 	else if (Event.Name == "ObjectLeft")
 	{
-		OnAugmentaObjectLeftCluster.Broadcast(DeserializeJsonAugmentaObject(Event.Parameters));
+		OnAugmentaObjectLeft.Broadcast(DeserializeJsonAugmentaObject(Event.Parameters));
 	}
 	else if (Event.Name == "SourceDestroyed")
 	{
-		OnAugmentaSourceDestroyedCluster.Broadcast();
+		OnAugmentaSourceDestroyed.Broadcast();
 	}
 }
 
@@ -271,27 +269,27 @@ void ALiveLinkAugmentaClusterManager::OnClusterEventBinary_Implementation(
 {
 	if (Event.EventId == BinaryEventIdOffset)
 	{
-		OnAugmentaSourceDestroyedCluster.Broadcast();
+		OnAugmentaSourceDestroyed.Broadcast();
 	}
 	else if(Event.EventId == BinaryEventIdOffset + 1)
 	{
-		OnAugmentaSceneUpdatedCluster.Broadcast(DeserializeBinaryAugmentaScene(Event.EventData));
+		OnAugmentaSceneUpdated.Broadcast(DeserializeBinaryAugmentaScene(Event.EventData));
 	}
 	else if (Event.EventId == BinaryEventIdOffset + 2)
 	{
-		OnAugmentaVideoOutputUpdatedCluster.Broadcast(DeserializeBinaryAugmentaVideoOutput(Event.EventData));
+		OnAugmentaVideoOutputUpdated.Broadcast(DeserializeBinaryAugmentaVideoOutput(Event.EventData));
 	}
 	else if (Event.EventId == BinaryEventIdOffset + 3)
 	{
-		OnAugmentaObjectEnteredCluster.Broadcast(DeserializeBinaryAugmentaObject(Event.EventData));
+		OnAugmentaObjectEntered.Broadcast(DeserializeBinaryAugmentaObject(Event.EventData));
 	}
 	else if (Event.EventId == BinaryEventIdOffset + 4)
 	{
-		OnAugmentaObjectUpdatedCluster.Broadcast(DeserializeBinaryAugmentaObject(Event.EventData));
+		OnAugmentaObjectUpdated.Broadcast(DeserializeBinaryAugmentaObject(Event.EventData));
 	}
 	else if (Event.EventId == BinaryEventIdOffset + 5)
 	{
-		OnAugmentaObjectLeftCluster.Broadcast(DeserializeBinaryAugmentaObject(Event.EventData));
+		OnAugmentaObjectLeft.Broadcast(DeserializeBinaryAugmentaObject(Event.EventData));
 	}
 }
 
