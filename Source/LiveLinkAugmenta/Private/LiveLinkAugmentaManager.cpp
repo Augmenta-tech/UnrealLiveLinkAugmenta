@@ -89,17 +89,6 @@ int ALiveLinkAugmentaManager::GetAugmentaObjectsCount()
 	return bIsConnected ? LiveLinkAugmentaSource->GetAugmentaObjectsCount() : 0;
 }
 
-bool ALiveLinkAugmentaManager::GetAugmentaVideoOutput(FLiveLinkAugmentaVideoOutput& AugmentaVideoOutput)
-{
-	if (bIsConnected)
-	{
-		AugmentaVideoOutput = LiveLinkAugmentaSource->GetAugmentaVideoOutput();
-		return true;
-	}
-
-	return false;
-}
-
 void ALiveLinkAugmentaManager::SearchLiveLinkSource()
 {
 
@@ -138,10 +127,9 @@ void ALiveLinkAugmentaManager::SearchLiveLinkSource()
 
 		//Bind events
 		LiveLinkAugmentaSource->OnLiveLinkAugmentaSceneUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaSceneUpdated);
-		LiveLinkAugmentaSource->OnLiveLinkAugmentaVideoOutputUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaVideoOutputUpdated);
 		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectEntered.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectEntered);
 		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectUpdated.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectUpdated);
-		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectWillLeave.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectWillLeave);
+		LiveLinkAugmentaSource->OnLiveLinkAugmentaObjectLeft.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectLeft);
 		LiveLinkAugmentaSource->OnLiveLinkAugmentaSourceDestroyed.BindUObject(this, &ALiveLinkAugmentaManager::OnLiveLinkAugmentaSourceDestroyed);
 
 		bIsConnected = true;
@@ -163,28 +151,13 @@ void ALiveLinkAugmentaManager::OnLiveLinkAugmentaSceneUpdated(FLiveLinkAugmentaS
 	UE_LOG(LogLiveLinkAugmenta, Verbose, TEXT("LiveLinkAugmentaManager: Received event from Live Link: Scene updated."));
 }
 
-void ALiveLinkAugmentaManager::OnLiveLinkAugmentaVideoOutputUpdated(FLiveLinkAugmentaVideoOutput NewAugmentaVideoOutput)
-{
-
-	if (ensure(AugmentaEventDataQueue))
-	{
-		FAugmentaEventData NewEventData;
-		NewEventData.EventType = 1;
-		NewEventData.ObjectId = -2;
-
-		AugmentaEventDataQueue->Events.Enqueue(NewEventData);
-	}
-
-	UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Live Link VideoOutput updated."));
-}
-
 void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectEntered(FLiveLinkAugmentaObject AugmentaObject)
 {
 
 	if (ensure(AugmentaEventDataQueue))
 	{
 		FAugmentaEventData NewEventData;
-		NewEventData.EventType = 2;
+		NewEventData.EventType = 1;
 		NewEventData.ObjectId = AugmentaObject.Id;
 		NewEventData.AugmentaObject = AugmentaObject;
 
@@ -200,7 +173,7 @@ void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectUpdated(FLiveLinkAugmenta
 	if (ensure(AugmentaEventDataQueue))
 	{
 		FAugmentaEventData NewEventData;
-		NewEventData.EventType = 3;
+		NewEventData.EventType = 2;
 		NewEventData.ObjectId = AugmentaObject.Id;
 		NewEventData.AugmentaObject = AugmentaObject;
 
@@ -211,20 +184,19 @@ void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectUpdated(FLiveLinkAugmenta
 
 }
 
-void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectWillLeave(FLiveLinkAugmentaObject AugmentaObject)
+void ALiveLinkAugmentaManager::OnLiveLinkAugmentaObjectLeft(int32 ObjectId)
 {
 
 	if (ensure(AugmentaEventDataQueue))
 	{
 		FAugmentaEventData NewEventData;
-		NewEventData.EventType = 4;
-		NewEventData.ObjectId = AugmentaObject.Id;
-		NewEventData.AugmentaObject = AugmentaObject;
+		NewEventData.EventType = 3;
+		NewEventData.ObjectId = ObjectId;
 
 		AugmentaEventDataQueue->Events.Enqueue(NewEventData);
 	}
 
-	UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Received event from Live Link: Object %d will leave."), AugmentaObject.Id);
+	UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Received event from Live Link: Object %d left."), ObjectId);
 }
 
 void ALiveLinkAugmentaManager::OnLiveLinkAugmentaSourceDestroyed()
@@ -320,31 +292,23 @@ void ALiveLinkAugmentaManager::PropagateLiveLinkEventFromEventData(FAugmentaEven
 	}
 		break;
 
-	case 1: //Video Output updated
-	{
-		const FLiveLinkAugmentaVideoOutput AugmentaVideoOutput = LiveLinkAugmentaSource->GetAugmentaVideoOutput();
-		OnAugmentaVideoOutputUpdated.Broadcast(AugmentaVideoOutput);
-		UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Propagating Video Output Updated event."));
-	}
-		break;
-
-	case 2: //Object entered
+	case 1: //Object entered
 	{
 		OnAugmentaObjectEntered.Broadcast(EventData.AugmentaObject);
 		UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Propagating Object Entered event for object %d."), EventData.ObjectId);
 	}
 		break;
 
-	case 3: //Object updated
+	case 2: //Object updated
 	{
 		OnAugmentaObjectUpdated.Broadcast(EventData.AugmentaObject);
 		UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Propagating Object Updated event for object %d."), EventData.ObjectId);
 	}
 		break;
 
-	case 4: //Object left
+	case 3: //Object left
 	{
-		OnAugmentaObjectLeft.Broadcast(EventData.AugmentaObject);
+		OnAugmentaObjectLeft.Broadcast(EventData.ObjectId);
 		UE_LOG(LogLiveLinkAugmenta, VeryVerbose, TEXT("LiveLinkAugmentaManager: Propagating Object Left event for object %d."), EventData.ObjectId);
 	}
 		break;

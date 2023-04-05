@@ -27,11 +27,11 @@ struct FAugmentaEventData
 	//Those are not UPROPERTY() in the circular queue 
 	//so do not store UE Actor or UE Object pointers in this struct!
 
-	// Id of the Augmenta object this event refers to. -1 = AugmentaScene, -2 = AugmentaVideoOutput
+	// Id of the Augmenta object this event refers to. -1 = AugmentaScene.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Augmenta|Event Data")
 	int ObjectId = 0;
 
-	// Type of event : 0 = SceneUpdate, 1 = VideoOutputUpdate, 2 = ObjectEnter, 3 = ObjectUpdate, 4 = ObjectLeave
+	// Type of event : 0 = SceneUpdate, 1 = ObjectEnter, 2 = ObjectUpdate, 3 = ObjectLeft
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Augmenta|Event Data")
 	int EventType = 0;
 
@@ -97,7 +97,6 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Augmenta|Live Link")
 	bool bIsConnected;
 
-
 	// The event count threshold (in percentage of the event queue capacity) above which warnings are issued
 	UPROPERTY(EditAnywhere, Category = "Augmenta|Events", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float EventQueueCapacityWarningThreshold = 0.8f;
@@ -131,14 +130,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Augmenta|Objects")
 	int GetAugmentaObjectsCount();
 
-	/**
-	*  Get the Augmenta Video Output
-	*  @param  AugmentaVideoOutput       Augmenta Video Output
-	*  @return FALSE if Augmenta Manager source is not valid
-	*/
-	UFUNCTION(BlueprintPure, Category = "Augmenta|VideoOutput")
-	bool GetAugmentaVideoOutput(FLiveLinkAugmentaVideoOutput& AugmentaVideoOutput);
-
 	UPROPERTY()
 	UAugmentaEventDataQueue* AugmentaEventDataQueue = nullptr;
 
@@ -151,10 +142,9 @@ private:
 	void SearchLiveLinkSource();
 
 	void OnLiveLinkAugmentaSceneUpdated(FLiveLinkAugmentaScene AugmentaScene);
-	void OnLiveLinkAugmentaVideoOutputUpdated(FLiveLinkAugmentaVideoOutput AugmentaVideoOutput);
 	void OnLiveLinkAugmentaObjectEntered(FLiveLinkAugmentaObject AugmentaObject);
 	void OnLiveLinkAugmentaObjectUpdated(FLiveLinkAugmentaObject AugmentaObject);
-	void OnLiveLinkAugmentaObjectWillLeave(FLiveLinkAugmentaObject AugmentaObject);
+	void OnLiveLinkAugmentaObjectLeft(int32 ObjectId);
 	void OnLiveLinkAugmentaSourceDestroyed();
 
 	void PropagateLiveLinkEvents();

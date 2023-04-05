@@ -33,7 +33,7 @@ class ILiveLinkClient;
 /** Delegates */
 DECLARE_DELEGATE_OneParam(FLiveLinkAugmentaSceneUpdatedEvent, FLiveLinkAugmentaScene);
 DECLARE_DELEGATE_OneParam(FLiveLinkAugmentaObjectUpdatedEvent, FLiveLinkAugmentaObject);
-DECLARE_DELEGATE_OneParam(FLiveLinkAugmentaVideoOutputUpdatedEvent, FLiveLinkAugmentaVideoOutput);
+DECLARE_DELEGATE_OneParam(FLiveLinkAugmentaObjectLeftEvent, int32);
 DECLARE_DELEGATE(FLiveLinkAugmentaSourceDestroyedEvent);
 
 class LIVELINKAUGMENTA_API FLiveLinkAugmentaSource : public ILiveLinkSource, public FRunnable, public TSharedFromThis<FLiveLinkAugmentaSource>
@@ -75,22 +75,19 @@ public:
 
 	// End FRunnable Interface
 
-	/** A delegate that is fired when an Augmenta scene message is generated. */
+	/** A delegate that is fired when an Augmenta scene bundle is received. */
 	FLiveLinkAugmentaSceneUpdatedEvent OnLiveLinkAugmentaSceneUpdated;
 
-	/** A delegate that is fired when an Augmenta Object Entered message is generated. */
+	/** A delegate that is fired when an Augmenta object appeared in a received objects bundle. */
 	FLiveLinkAugmentaObjectUpdatedEvent OnLiveLinkAugmentaObjectEntered;
 
-	/** A delegate that is fired when an Augmenta Object Updated message is generated. */
+	/** A delegate that is fired when an Augmenta object was updated in a received objects bundle. */
 	FLiveLinkAugmentaObjectUpdatedEvent OnLiveLinkAugmentaObjectUpdated;
 
-	/** A delegate that is fired when an Augmenta Object Will Leave message is generated. */
-	FLiveLinkAugmentaObjectUpdatedEvent OnLiveLinkAugmentaObjectWillLeave;
+	/** A delegate that is fired when an Augmenta object left in a received objects bundle. */
+	FLiveLinkAugmentaObjectLeftEvent OnLiveLinkAugmentaObjectLeft;
 
-	/** A delegate that is fired when an Augmenta video output (fusion) message is generated. */
-	FLiveLinkAugmentaVideoOutputUpdatedEvent OnLiveLinkAugmentaVideoOutputUpdated;
-
-	/** A delegate that is fired when the source is destroyed */
+	/** A delegate that is fired when the Live Link source is destroyed */
 	FLiveLinkAugmentaSourceDestroyedEvent OnLiveLinkAugmentaSourceDestroyed;
 
 	// Get Augmenta Scene Name
@@ -119,9 +116,6 @@ public:
 	*  @return Whether an object with the desired Id is present
 	*/
 	bool ContainsId(int Id);
-
-	// Get the Augmenta Video Output
-	FLiveLinkAugmentaVideoOutput GetAugmentaVideoOutput();
 
 private:
 
@@ -170,20 +164,11 @@ private:
 	// Maximum rate at which to refresh the server
 	uint32 LocalUpdateRateInHz = 120;
 
-	// Conversion from meters to unreal units
-	const float MetersToUnrealUnits = 100.0f;
-
-	// Maximum inactive time before a point is removed
-	float TimeoutDuration;
-
 	// Offset object position vertically according to its height
 	bool bApplyObjectHeight;
 
-	// Use bounding box size as object scale
-	bool bApplyObjectScale;
-
-	// Use centroid position as position instead of bounding box center when using scale
-	bool bOffsetObjectPositionOnCentroid;
+	// Use bounding box size as object scale and bounding box position as object position
+	bool bUseBoundingBox;
 
 	// Disable the creation and update of Live Link subjects from received Augmenta data
 	bool bDisableSubjectsUpdate;
@@ -195,20 +180,18 @@ private:
 	// Augmenta objects
 	TMap<int, FLiveLinkAugmentaObject> AugmentaObjects;
 
-	// Augmenta video output
-	FLiveLinkAugmentaVideoOutput AugmentaVideoOutput;
-
 	// OSC Parsing
 	void HandleReceivedMessage(const OSCPP::Server::Packet& Packet);
-	void HandleOSCPacket(const OSCPP::Server::Packet& Packet);
-	void ReadAugmentaObjectFromOSC(FLiveLinkAugmentaObject* AugmentaObject, OSCPP::Server::ArgStream* Args);
-	void UpdateAugmentaObjectExtraFromOSC(OSCPP::Server::ArgStream* Args);
+	void ParseSceneBundle(const OSCPP::Server::Bundle& Bundle);
+	void ParseScenePacket(const OSCPP::Server::Packet& Packet);
+	void ParseObjectsBundle(const OSCPP::Server::Bundle& Bundle);
+	void ParseObjectsPacket(const OSCPP::Server::Packet& Packet);
+
 	void AddAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
 	void UpdateAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
-	void RemoveAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
+	void RemoveAugmentaObject(int32 Id);
 	void UpdateAugmentaObjectSubject(FLiveLinkAugmentaObject AugmentaObject);
-	void RemoveInactiveObjects();
+	void RemoveAllObjects();
 
-	TArray<int> ObjectsToRemove;
-
+	TArray<int> UpdatedObjectsIds;
 };

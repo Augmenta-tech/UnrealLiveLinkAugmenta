@@ -95,10 +95,8 @@ void FLiveLinkAugmentaSource::InitializeSettings(ULiveLinkSourceSettings* Settin
 		SavedSourceSettings->SceneName = SceneName;
 		SavedSourceSettings->SourceReference = this;
 
-		TimeoutDuration = SavedSourceSettings->TimeoutDuration;
 		bApplyObjectHeight = SavedSourceSettings->bApplyObjectHeight;
-		bApplyObjectScale = SavedSourceSettings->bApplyObjectScale;
-		bOffsetObjectPositionOnCentroid = SavedSourceSettings->bOffsetObjectPositionOnCentroid;
+		bUseBoundingBox = SavedSourceSettings->bUseBoundingBox;
 		bDisableSubjectsUpdate = SavedSourceSettings->bDisableSubjectsUpdate;
 	}
 }
@@ -120,10 +118,8 @@ void FLiveLinkAugmentaSource::OnSettingsChanged(ULiveLinkSourceSettings* Setting
 
 		if (SourceSettings != nullptr)
 		{
-			TimeoutDuration = SavedSourceSettings->TimeoutDuration;
 			bApplyObjectHeight = SavedSourceSettings->bApplyObjectHeight;
-			bApplyObjectScale = SavedSourceSettings->bApplyObjectScale;
-			bOffsetObjectPositionOnCentroid = SavedSourceSettings->bOffsetObjectPositionOnCentroid;
+			bUseBoundingBox = SavedSourceSettings->bUseBoundingBox;
 			bDisableSubjectsUpdate = SavedSourceSettings->bDisableSubjectsUpdate;
 		}
 	}
@@ -186,14 +182,35 @@ uint32 FLiveLinkAugmentaSource::Run()
 					}
 				}
 			}
-
-			//Remove inactive objects
-			RemoveInactiveObjects();
 		}
 	}
 	
 	return 0;
 }
+
+void FLiveLinkAugmentaSource::Send(FLiveLinkFrameDataStruct* FrameDataToSend, FName SubjectName)
+{
+
+	if (Stopping || (Client == nullptr))
+	{
+		return;
+	}
+
+	if (!EncounteredSubjects.Contains(SubjectName))
+	{
+		FLiveLinkStaticDataStruct StaticData(FLiveLinkTransformStaticData::StaticStruct());
+		StaticData.Cast<FLiveLinkTransformStaticData>()->bIsScaleSupported = true;
+		Client->PushSubjectStaticData_AnyThread({ SourceGuid, SubjectName }, ULiveLinkTransformRole::StaticClass(), MoveTemp(StaticData));
+
+		EncounteredSubjects.Add(SubjectName);
+	}
+
+	Client->PushSubjectFrameData_AnyThread({ SourceGuid, SubjectName }, MoveTemp(*FrameDataToSend));
+}
+
+/********************/
+/**** ACCESSORS *****/
+/********************/
 
 FName FLiveLinkAugmentaSource::GetSceneName()
 {
@@ -229,31 +246,9 @@ bool FLiveLinkAugmentaSource::ContainsId(int Id)
 	return AugmentaObjects.Contains(Id);
 }
 
-FLiveLinkAugmentaVideoOutput FLiveLinkAugmentaSource::GetAugmentaVideoOutput()
-{
-	return AugmentaVideoOutput;
-}
-
-void FLiveLinkAugmentaSource::Send(FLiveLinkFrameDataStruct* FrameDataToSend, FName SubjectName)
-{
-
-	if (Stopping || (Client == nullptr))
-	{
-		return;
-	}
-
-	if (!EncounteredSubjects.Contains(SubjectName))
-	{
-		FLiveLinkStaticDataStruct StaticData(FLiveLinkTransformStaticData::StaticStruct());
-		StaticData.Cast<FLiveLinkTransformStaticData>()->bIsScaleSupported = true;
-		Client->PushSubjectStaticData_AnyThread({ SourceGuid, SubjectName }, ULiveLinkTransformRole::StaticClass(), MoveTemp(StaticData));
-
-		EncounteredSubjects.Add(SubjectName);
-	}
-
-	Client->PushSubjectFrameData_AnyThread({ SourceGuid, SubjectName }, MoveTemp(*FrameDataToSend));
-}
-
+/**********************/
+/**** OSC PARSING *****/
+/**********************/
 
 void FLiveLinkAugmentaSource::HandleReceivedMessage(const OSCPP::Server::Packet& Packet)
 {
@@ -267,10 +262,29 @@ void FLiveLinkAugmentaSource::HandleReceivedMessage(const OSCPP::Server::Packet&
 		// Get packet stream
 		OSCPP::Server::PacketStream Packets(Bundle.packets());
 
-		// Iterate over all the packets and call HandleOSCPacket recursively.
-		// Caution: Might lead to stack overflow!
-		while (!Packets.atEnd()) {
-			HandleOSCPacket(Packets.next());
+		/////Check bundle type
+		const OSCPP::Server::Message Message(Packets.next());
+		const FString Address = Message.address();
+		TArray<FString> AddressArgs;
+		Address.ParseIntoArray(AddressArgs, TEXT("/"), true);
+
+		if (AddressArgs.Num() < 2)
+		{
+			// Simply print unknown messages
+			UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message."));
+			return;
+		} else
+		{
+			if (AddressArgs[0] == "scene")
+			{
+				//Parse scene bundle
+				ParseSceneBundle(Bundle);
+			}
+			else if (AddressArgs[0] == "frame")
+			{
+				//Parse objects bundle
+				ParseObjectsBundle(Bundle);
+			}
 		}
 
 	} else {
@@ -279,235 +293,278 @@ void FLiveLinkAugmentaSource::HandleReceivedMessage(const OSCPP::Server::Packet&
 	}
 }
 
-void FLiveLinkAugmentaSource::HandleOSCPacket(const OSCPP::Server::Packet& Packet)
+void FLiveLinkAugmentaSource::ParseSceneBundle(const OSCPP::Server::Bundle& Bundle)
+{
+	// Get packet stream
+	OSCPP::Server::PacketStream Packets(Bundle.packets());
+
+	// Iterate over all the packets and call ParseScenePacket recursively.
+	// Caution: Might lead to stack overflow!
+	while (!Packets.atEnd()) {
+		ParseScenePacket(Packets.next());
+	}
+
+	if (!bDisableSubjectsUpdate) {
+		//Update scene subject
+		FLiveLinkFrameDataStruct SceneFrameData(FLiveLinkTransformFrameData::StaticStruct());
+		FLiveLinkTransformFrameData* SceneTransformFrameData = SceneFrameData.Cast<FLiveLinkTransformFrameData>();
+
+		SceneTransformFrameData->Transform = FTransform(FQuat::Identity, AugmentaScene.Position, AugmentaScene.Size);
+
+		FName CurrentName = FName(SceneName.ToString() + "_Scene");
+		Send(&SceneFrameData, CurrentName);
+	}
+
+	//Send scene updated event
+	if (OnLiveLinkAugmentaSceneUpdated.IsBound())
+	{
+		OnLiveLinkAugmentaSceneUpdated.Execute(AugmentaScene);
+	}
+}
+
+void FLiveLinkAugmentaSource::ParseScenePacket(const OSCPP::Server::Packet& Packet)
 {
 	// Convert to message
 	const OSCPP::Server::Message Message(Packet);
 
 	// Get argument stream
-	const OSCPP::Server::ArgStream Args(Message.args());
+	OSCPP::Server::ArgStream Args(Message.args());
 
 	const FString Address = Message.address();
-
-	//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received OSC message %s."), *Address);
 
 	TArray<FString> AddressArgs;
 	Address.ParseIntoArray(AddressArgs, TEXT("/"), true);
 
-	if(AddressArgs[0] == "scene")
+	//Ensure address is correct
+	if (AddressArgs.Num() < 2)
 	{
-		//Scene bundles
-
-		//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Parsing scene message."));
-
-	} else if(AddressArgs[0] == "frame")
-	{
-		//Frame part of objects bundle
-
-		//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Parsing frame message."));
+		// Simply print unknown messages
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message."));
 
 	} else
 	{
-		//Object part of objects bundle
-		const int Id = FCString::Atoi(*AddressArgs[0]);
-
-		//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Parsing object %d message."), Id);
-	}
-
-	/*
-	if (msg == "/scene") {
-
-		//Update scene object
-		AugmentaScene.Frame = args.int32();
-		AugmentaScene.ObjectCount = args.int32();
-		AugmentaScene.Size.X = args.float32();
-		AugmentaScene.Size.Y = args.float32();
-
-		AugmentaScene.Position = FVector::ZeroVector;
-
-		AugmentaScene.Rotation = FQuat::Identity;
-
-		AugmentaScene.Scale.X = AugmentaScene.Size.Y;
-		AugmentaScene.Scale.Y = AugmentaScene.Size.X;
-		AugmentaScene.Scale.Z = 1;
-
-		if (!bDisableSubjectsUpdate) {
-			//Update scene subject
-			FLiveLinkFrameDataStruct SceneFrameData(FLiveLinkTransformFrameData::StaticStruct());
-			FLiveLinkTransformFrameData* SceneTransformFrameData = SceneFrameData.Cast<FLiveLinkTransformFrameData>();
-
-			SceneTransformFrameData->Transform = FTransform(AugmentaScene.Rotation, AugmentaScene.Position, AugmentaScene.Scale);
-
-			FName CurrentName = FName(SceneName.ToString() + "_Scene");
-			Send(&SceneFrameData, CurrentName);
-		}
-
-		//Send scene updated event
-		if (OnLiveLinkAugmentaSceneUpdated.IsBound())
+		if (AddressArgs[1] == "clear")
 		{
-			OnLiveLinkAugmentaSceneUpdated.Execute(AugmentaScene);
+			RemoveAllObjects();
 		}
-
-	}
-	else if (msg == "/fusion") {
-
-		//Update video output object
-		AugmentaVideoOutput.Offset.X = args.float32() * MetersToUnrealUnits;
-		AugmentaVideoOutput.Offset.Y = args.float32() * MetersToUnrealUnits;
-		AugmentaVideoOutput.Size.X = args.float32();
-		AugmentaVideoOutput.Size.Y = args.float32();
-		AugmentaVideoOutput.Resolution.X = args.int32();
-		AugmentaVideoOutput.Resolution.Y = args.int32();
-
-		AugmentaVideoOutput.Position.X = (AugmentaScene.Position.X + AugmentaScene.Size.Y * .5f * MetersToUnrealUnits) - AugmentaVideoOutput.Offset.Y - AugmentaVideoOutput.Size.Y * .5f * MetersToUnrealUnits;
-		AugmentaVideoOutput.Position.Y = (AugmentaScene.Position.Y - AugmentaScene.Size.X * .5f * MetersToUnrealUnits) + AugmentaVideoOutput.Offset.X + AugmentaVideoOutput.Size.X * .5f * MetersToUnrealUnits;
-		AugmentaVideoOutput.Position.Z = AugmentaScene.Position.Z;
-
-		AugmentaVideoOutput.Rotation = AugmentaScene.Rotation;
-
-		AugmentaVideoOutput.Scale.X = AugmentaVideoOutput.Size.Y;
-		AugmentaVideoOutput.Scale.Y = AugmentaVideoOutput.Size.X;
-		AugmentaVideoOutput.Scale.Z = 1;
-
-		if (!bDisableSubjectsUpdate) {
-			//Update video output subject
-			FLiveLinkFrameDataStruct VideoOutputFrameData(FLiveLinkTransformFrameData::StaticStruct());
-			FLiveLinkTransformFrameData* VideoOutputTransformFrameData = VideoOutputFrameData.Cast<FLiveLinkTransformFrameData>();
-
-			VideoOutputTransformFrameData->Transform = FTransform(AugmentaVideoOutput.Rotation, AugmentaVideoOutput.Position, AugmentaVideoOutput.Scale);
-
-			FName CurrentName = FName(SceneName.ToString() + "_VideoOutput");
-			Send(&VideoOutputFrameData, CurrentName);
-		}
-
-		//Send video output updated event
-		if (OnLiveLinkAugmentaVideoOutputUpdated.IsBound())
+		else if (AddressArgs[1] == "pos")
 		{
-			OnLiveLinkAugmentaVideoOutputUpdated.Execute(AugmentaVideoOutput);
+			AugmentaScene.Position.X = Args.float32();
+			AugmentaScene.Position.Y = Args.float32();
+			AugmentaScene.Position.Z = Args.float32();
 		}
-
-	}
-	else if (msg == "/object/enter") {
-
-		//Create augmenta object
-		ReadAugmentaObjectFromOSC(&CurrentAugmentaObject, &args);
-
-		if (!AugmentaObjects.Contains(CurrentAugmentaObject.Id)) {
-			AddAugmentaObject(CurrentAugmentaObject);
+		else if (AddressArgs[1] == "size")
+		{
+			AugmentaScene.Size.X = Args.float32();
+			AugmentaScene.Size.Y = Args.float32();
+			AugmentaScene.Size.Z = Args.float32();
 		}
-
-	}
-	else if (msg == "/object/update") {
-
-		//Update augmenta object
-		ReadAugmentaObjectFromOSC(&CurrentAugmentaObject, &args);
-
-		if (AugmentaObjects.Contains(CurrentAugmentaObject.Id)) {
-			UpdateAugmentaObject(CurrentAugmentaObject);
+		else if (AddressArgs[1] == "video")
+		{
+			if (AddressArgs[2] == "pos")
+			{
+				AugmentaScene.VideoPosition.X = Args.float32();
+				AugmentaScene.VideoPosition.Y = Args.float32();
+				AugmentaScene.VideoPosition.Z = Args.float32();
+			}
+			else if (AddressArgs[2] == "size")
+			{
+				AugmentaScene.VideoSize.X = Args.float32();
+				AugmentaScene.VideoSize.Y = Args.float32();
+				AugmentaScene.VideoSize.Z = Args.float32();
+			}
+			else if (AddressArgs[2] == "res")
+			{
+				AugmentaScene.VideoResolution.X = Args.int32();
+				AugmentaScene.VideoResolution.Y = Args.int32();
+			}
 		}
-		else {
-			AddAugmentaObject(CurrentAugmentaObject);
+	}
+}
+
+void FLiveLinkAugmentaSource::ParseObjectsBundle(const OSCPP::Server::Bundle& Bundle)
+{
+	// Save current object list
+	TArray<int> PreviousObjectsIds;
+	AugmentaObjects.GetKeys(PreviousObjectsIds);
+
+	UpdatedObjectsIds.Empty();
+
+	// Get packet stream
+	OSCPP::Server::PacketStream Packets(Bundle.packets());
+
+	// Iterate over all the packets and call ParseObjectsPacket recursively.
+	// Caution: Might lead to stack overflow!
+	while (!Packets.atEnd()) {
+		ParseObjectsPacket(Packets.next());
+	}
+
+	//Compare previous object list and current one and send corresponding Augmenta events
+	for (const auto& Id : UpdatedObjectsIds) {
+		if(PreviousObjectsIds.Contains(Id))
+		{
+			//Updated object
+			UpdateAugmentaObject(AugmentaObjects[Id]);
+
+			PreviousObjectsIds.Remove(Id);
+		} else
+		{
+			//Created object
+			AddAugmentaObject(AugmentaObjects[Id]);
 		}
-
 	}
-	else if (msg == "/object/leave") {
 
-		//Remove augmenta object
-		ReadAugmentaObjectFromOSC(&CurrentAugmentaObject, &args);
-
-		if (AugmentaObjects.Contains(CurrentAugmentaObject.Id)) {
-			RemoveAugmentaObject(CurrentAugmentaObject);
-		}
-
+	for (const auto& Id : PreviousObjectsIds) {
+		//Removed object
+		RemoveAugmentaObject(Id);
 	}
-	else if (msg == "/object/enter/extra") {
+}
 
-		UpdateAugmentaObjectExtraFromOSC(&args);
+void FLiveLinkAugmentaSource::ParseObjectsPacket(const OSCPP::Server::Packet& Packet)
+{
+	// Convert to message
+	const OSCPP::Server::Message Message(Packet);
 
-	}
-	else if (msg == "/object/update/extra") {
+	// Get argument stream
+	OSCPP::Server::ArgStream Args(Message.args());
 
-		UpdateAugmentaObjectExtraFromOSC(&args);
+	const FString Address = Message.address();
 
-	}
-	else if (msg == "/object/leave/extra") {
+	TArray<FString> AddressArgs;
+	Address.ParseIntoArray(AddressArgs, TEXT("/"), true);
 
-		UpdateAugmentaObjectExtraFromOSC(&args);
-
-	}
-	else {
+	//Ensure address is correct
+	if (AddressArgs.Num() < 2)
+	{
 		// Simply print unknown messages
 		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message."));
+
 	}
-	*/
+	else
+	{
+		//Every address in the objects bundle is supposed to start by "frame" or an object id
+		if (AddressArgs[0] != "frame")
+		{
+			//Current object id
+			const int Id = FCString::Atoi(*AddressArgs[0]);
+
+			//Create object if not existing
+			if(!AugmentaObjects.Contains(Id))
+			{
+				FLiveLinkAugmentaObject NewAugmentaObject;
+				NewAugmentaObject.Id = Id;
+
+				AugmentaObjects.Emplace(Id, NewAugmentaObject);
+			}
+
+			//Add id to list of updated Ids
+			if(!UpdatedObjectsIds.Contains(Id))
+			{
+				UpdatedObjectsIds.Add(Id);
+			}
+
+			//Check message content
+			if(AddressArgs[1] == "uid")
+			{
+				AugmentaObjects[Id].Uid = Args.int32();
+			}
+			else if (AddressArgs[1] == "pos" && AddressArgs[2] == "abs")
+			{
+				AugmentaObjects[Id].CentroidPosition.X = Args.float32();
+				AugmentaObjects[Id].CentroidPosition.Y = Args.float32();
+				AugmentaObjects[Id].CentroidPosition.Z = Args.float32();
+			}
+			else if (AddressArgs[1] == "height")
+			{
+				AugmentaObjects[Id].Height = Args.float32();
+
+				if(bApplyObjectHeight)
+				{
+					AugmentaObjects[Id].CentroidPosition.Z += AugmentaObjects[Id].Height * .5f;
+				}
+			}
+			else if (AddressArgs[1] == "weight")
+			{
+				AugmentaObjects[Id].Confidence = Args.float32();
+			}
+			else if (AddressArgs[1] == "box")
+			{
+				if(AddressArgs[2] == "angle")
+				{
+					AugmentaObjects[Id].Rotation = FQuat(FRotator(0, Args.float32(), 0));
+				}
+				else if (AddressArgs[2] == "abs") 
+				{
+					AugmentaObjects[Id].BoxPosition.X = Args.float32();
+					AugmentaObjects[Id].BoxPosition.Y = Args.float32();
+					AugmentaObjects[Id].BoxPosition.Z = Args.float32();
+
+					if (bApplyObjectHeight)
+					{
+						AugmentaObjects[Id].BoxPosition.Z += AugmentaObjects[Id].Height * .5f;
+					}
+
+					AugmentaObjects[Id].Size.X = Args.float32();
+					AugmentaObjects[Id].Size.Y = Args.float32();
+					AugmentaObjects[Id].Size.Z = Args.float32();
+				}
+			}
+			
+		}
+	}
 }
 
-void FLiveLinkAugmentaSource::ReadAugmentaObjectFromOSC(FLiveLinkAugmentaObject* AugmentaObject, OSCPP::Server::ArgStream* Args) {
-
-	AugmentaObject->Frame = Args->int32();
-	AugmentaObject->Id = Args->int32();
-	AugmentaObject->Oid = Args->int32();
-	AugmentaObject->Age = Args->float32();
-	AugmentaObject->Centroid.X = Args->float32();
-	AugmentaObject->Centroid.Y = Args->float32();
-	AugmentaObject->Velocity.X = Args->float32();
-	AugmentaObject->Velocity.Y = Args->float32();
-	AugmentaObject->Orientation = Args->float32();
-	AugmentaObject->BoundingRectPos.X = Args->float32();
-	AugmentaObject->BoundingRectPos.Y = Args->float32();
-	AugmentaObject->BoundingRectSize.X = Args->float32();
-	AugmentaObject->BoundingRectSize.Y = Args->float32();
-	AugmentaObject->BoundingRectRotation = Args->float32();
-	AugmentaObject->Height = Args->float32();
-
-	if (bApplyObjectScale && !bOffsetObjectPositionOnCentroid) {
-		AugmentaObject->Position.X = (.5f - AugmentaObject->BoundingRectPos.Y) * AugmentaScene.Size.Y * MetersToUnrealUnits;
-		AugmentaObject->Position.Y = (AugmentaObject->BoundingRectPos.X - .5f) * AugmentaScene.Size.X * MetersToUnrealUnits;
-	}
-	else {
-		AugmentaObject->Position.X = (.5f - AugmentaObject->Centroid.Y) * AugmentaScene.Size.Y * MetersToUnrealUnits;
-		AugmentaObject->Position.Y = (AugmentaObject->Centroid.X - .5f) * AugmentaScene.Size.X * MetersToUnrealUnits;
-	}
-
-	AugmentaObject->Position.Z = bApplyObjectHeight ? AugmentaObject->Height * .5f * MetersToUnrealUnits : 0;
-
-	AugmentaObject->Position += AugmentaScene.Position;
-
-	AugmentaObject->Rotation = FQuat(FRotator(0, -AugmentaObject->BoundingRectRotation, 0));
-
-	if (bApplyObjectScale) {
-		AugmentaObject->Scale.X = AugmentaObject->BoundingRectSize.Y * AugmentaScene.Size.Y;
-		AugmentaObject->Scale.Y = AugmentaObject->BoundingRectSize.X * AugmentaScene.Size.X;
-		AugmentaObject->Scale.Z = AugmentaObject->Height;
-	}
-	else {
-		AugmentaObject->Scale = FVector::OneVector;
-	}
-
-	AugmentaObject->LastUpdateTime = FDateTime::Now();
-}
-
-void FLiveLinkAugmentaSource::UpdateAugmentaObjectExtraFromOSC(OSCPP::Server::ArgStream* Args) {
-
-	const int Frame = Args->int32();
-	const int Id = Args->int32();
-	const int Oid = Args->int32();
-
-	if (AugmentaObjects.Contains(Id)) {
-		AugmentaObjects[Id].Highest.X = Args->float32();
-		AugmentaObjects[Id].Highest.Y = Args->float32();
-		AugmentaObjects[Id].Distance = Args->float32();
-		AugmentaObjects[Id].Reflectivity = Args->float32();
-	}
-}
+//void FLiveLinkAugmentaSource::ReadAugmentaObjectFromOSC(FLiveLinkAugmentaObject* AugmentaObject, OSCPP::Server::ArgStream* Args) {
+//
+//	AugmentaObject->Frame = Args->int32();
+//	AugmentaObject->Id = Args->int32();
+//	AugmentaObject->Oid = Args->int32();
+//	AugmentaObject->Age = Args->float32();
+//	AugmentaObject->Centroid.X = Args->float32();
+//	AugmentaObject->Centroid.Y = Args->float32();
+//	AugmentaObject->Velocity.X = Args->float32();
+//	AugmentaObject->Velocity.Y = Args->float32();
+//	AugmentaObject->Orientation = Args->float32();
+//	AugmentaObject->BoundingRectPos.X = Args->float32();
+//	AugmentaObject->BoundingRectPos.Y = Args->float32();
+//	AugmentaObject->BoundingRectSize.X = Args->float32();
+//	AugmentaObject->BoundingRectSize.Y = Args->float32();
+//	AugmentaObject->BoundingRectRotation = Args->float32();
+//	AugmentaObject->Height = Args->float32();
+//
+//	if (bApplyObjectScale && !bOffsetObjectPositionOnCentroid) {
+//		AugmentaObject->Position.X = (.5f - AugmentaObject->BoundingRectPos.Y) * AugmentaScene.Size.Y * MetersToUnrealUnits;
+//		AugmentaObject->Position.Y = (AugmentaObject->BoundingRectPos.X - .5f) * AugmentaScene.Size.X * MetersToUnrealUnits;
+//	}
+//	else {
+//		AugmentaObject->Position.X = (.5f - AugmentaObject->Centroid.Y) * AugmentaScene.Size.Y * MetersToUnrealUnits;
+//		AugmentaObject->Position.Y = (AugmentaObject->Centroid.X - .5f) * AugmentaScene.Size.X * MetersToUnrealUnits;
+//	}
+//
+//	AugmentaObject->Position.Z = bApplyObjectHeight ? AugmentaObject->Height * .5f * MetersToUnrealUnits : 0;
+//
+//	AugmentaObject->Position += AugmentaScene.Position;
+//
+//	AugmentaObject->Rotation = FQuat(FRotator(0, -AugmentaObject->BoundingRectRotation, 0));
+//
+//	if (bApplyObjectScale) {
+//		AugmentaObject->Scale.X = AugmentaObject->BoundingRectSize.Y * AugmentaScene.Size.Y;
+//		AugmentaObject->Scale.Y = AugmentaObject->BoundingRectSize.X * AugmentaScene.Size.X;
+//		AugmentaObject->Scale.Z = AugmentaObject->Height;
+//	}
+//	else {
+//		AugmentaObject->Scale = FVector::OneVector;
+//	}
+//
+//	AugmentaObject->LastUpdateTime = FDateTime::Now();
+//}
 
 void FLiveLinkAugmentaSource::AddAugmentaObject(FLiveLinkAugmentaObject AugmentaObject)
 {
-	//Create new object
-	AugmentaObjects.Emplace(AugmentaObject.Id, AugmentaObject);
-
-	//Update augmenta object subject
-	UpdateAugmentaObjectSubject(AugmentaObject);
+	if (!bDisableSubjectsUpdate) {
+		//Update augmenta object subject
+		UpdateAugmentaObjectSubject(AugmentaObject);
+	}
 
 	//Send object entered event
 	if (OnLiveLinkAugmentaObjectEntered.IsBound())
@@ -518,9 +575,6 @@ void FLiveLinkAugmentaSource::AddAugmentaObject(FLiveLinkAugmentaObject Augmenta
 
 void FLiveLinkAugmentaSource::UpdateAugmentaObject(FLiveLinkAugmentaObject AugmentaObject)
 {
-	//Update existing object
-	AugmentaObjects[AugmentaObject.Id] = AugmentaObject;
-
 	if (!bDisableSubjectsUpdate) {
 		//Update augmenta object subject
 		UpdateAugmentaObjectSubject(AugmentaObject);
@@ -533,10 +587,10 @@ void FLiveLinkAugmentaSource::UpdateAugmentaObject(FLiveLinkAugmentaObject Augme
 	}
 }
 
-void FLiveLinkAugmentaSource::RemoveAugmentaObject(FLiveLinkAugmentaObject AugmentaObject)
+void FLiveLinkAugmentaSource::RemoveAugmentaObject(int32 Id)
 {
 	if (!bDisableSubjectsUpdate) {
-		FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(AugmentaObject.Oid));
+		FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(Id));
 
 		if (EncounteredSubjects.Contains(CurrentName)) {
 			EncounteredSubjects.Remove(CurrentName);
@@ -544,13 +598,11 @@ void FLiveLinkAugmentaSource::RemoveAugmentaObject(FLiveLinkAugmentaObject Augme
 		}
 	}
 
-	//Send object will leave event
-	if (OnLiveLinkAugmentaObjectWillLeave.IsBound())
+	//Send object left event
+	if (OnLiveLinkAugmentaObjectLeft.IsBound())
 	{
-		OnLiveLinkAugmentaObjectWillLeave.Execute(AugmentaObject);
+		OnLiveLinkAugmentaObjectLeft.Execute(Id);
 	}
-
-	AugmentaObjects.Remove(AugmentaObject.Id);
 }
 
 void FLiveLinkAugmentaSource::UpdateAugmentaObjectSubject(FLiveLinkAugmentaObject AugmentaObject)
@@ -559,26 +611,21 @@ void FLiveLinkAugmentaSource::UpdateAugmentaObjectSubject(FLiveLinkAugmentaObjec
 	FLiveLinkFrameDataStruct ObjectFrameData(FLiveLinkTransformFrameData::StaticStruct());
 	FLiveLinkTransformFrameData* ObjectTransformFrameData = ObjectFrameData.Cast<FLiveLinkTransformFrameData>();
 
-	ObjectTransformFrameData->Transform = FTransform(AugmentaObject.Rotation, AugmentaObject.Position, AugmentaObject.Scale);
+	ObjectTransformFrameData->Transform = FTransform(AugmentaObject.Rotation, bUseBoundingBox ? AugmentaObject.BoxPosition : AugmentaObject.CentroidPosition, bUseBoundingBox ? AugmentaObject.Size : FVector::OneVector);
 
-	FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(AugmentaObject.Oid));
+	const FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(AugmentaObject.Id));
 	Send(&ObjectFrameData, CurrentName);
 }
 
-void FLiveLinkAugmentaSource::RemoveInactiveObjects()
+void FLiveLinkAugmentaSource::RemoveAllObjects()
 {
-	FDateTime CurrentTime = FDateTime::Now();
+	TArray<int> IdsToRemove;
 
-	ObjectsToRemove.Empty();
+	AugmentaObjects.GetKeys(IdsToRemove);
+	AugmentaObjects.Empty();
 
-	for (auto& Elem : AugmentaObjects) {
-		if ((CurrentTime - Elem.Value.LastUpdateTime).GetTotalSeconds() > TimeoutDuration) {
-			ObjectsToRemove.Emplace(Elem.Value.Id);
-		}
-	}
-
-	for (auto& id : ObjectsToRemove) {
-		RemoveAugmentaObject(AugmentaObjects[id]);
+	for (const auto& Id : IdsToRemove) {
+		RemoveAugmentaObject(Id);
 	}
 }
 

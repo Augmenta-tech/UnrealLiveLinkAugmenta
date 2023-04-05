@@ -35,10 +35,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Augmenta|Cluster Events")
 	int BinaryEventIdOffset;
 
-	//Send only the transform, id and age data of the Augmenta objects to improve performance. Only works with json cluster events.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Augmenta|Cluster Events")
-	bool bSendReducedObjectData;
-
 protected:
 
 	bool bInitialized;
@@ -52,16 +48,13 @@ protected:
 	void SendSceneUpdatedClusterEvent(const FLiveLinkAugmentaScene AugmentaScene);
 
 	UFUNCTION(BlueprintCallable, Category = "Augmenta|Cluster")
-	void SendVideoOutputUpdatedClusterEvent(const FLiveLinkAugmentaVideoOutput AugmentaVideoOutput);
-
-	UFUNCTION(BlueprintCallable, Category = "Augmenta|Cluster")
 	void SendObjectEnteredClusterEvent(const FLiveLinkAugmentaObject AugmentaObject);
 
 	UFUNCTION(BlueprintCallable, Category = "Augmenta|Cluster")
 	void SendObjectUpdatedClusterEvent(const FLiveLinkAugmentaObject AugmentaObject);
 
 	UFUNCTION(BlueprintCallable, Category = "Augmenta|Cluster")
-	void SendObjectLeftClusterEvent(const FLiveLinkAugmentaObject AugmentaObject);
+	void SendObjectLeftClusterEvent(const int32 ObjectId);
 
 	UFUNCTION(BlueprintCallable, Category = "Augmenta|Cluster")
 	void SendSourceDestroyedClusterEvent();
@@ -69,20 +62,17 @@ protected:
 	TMap<FString, FString> SerializeJsonAugmentaScene(const FLiveLinkAugmentaScene AugmentaScene);
 	FLiveLinkAugmentaScene DeserializeJsonAugmentaScene(const TMap<FString, FString> EventData);
 
-	TMap<FString, FString> SerializeJsonAugmentaVideoOutput(const FLiveLinkAugmentaVideoOutput AugmentaVideoOutput);
-	FLiveLinkAugmentaVideoOutput DeserializeJsonAugmentaVideoOutput(const TMap<FString, FString> EventData);
-
 	TMap<FString, FString> SerializeJsonAugmentaObject(const FLiveLinkAugmentaObject AugmentaObject);
 	FLiveLinkAugmentaObject DeserializeJsonAugmentaObject(const TMap<FString, FString> EventData);
 
 	TArray<uint8> SerializeBinaryAugmentaScene(const FLiveLinkAugmentaScene AugmentaScene);
 	FLiveLinkAugmentaScene DeserializeBinaryAugmentaScene(const TArray<uint8> EventData);
 
-	TArray<uint8> SerializeBinaryAugmentaVideoOutput(const FLiveLinkAugmentaVideoOutput AugmentaVideoOutput);
-	FLiveLinkAugmentaVideoOutput DeserializeBinaryAugmentaVideoOutput(const TArray<uint8> EventData);
-
 	TArray<uint8> SerializeBinaryAugmentaObject(const FLiveLinkAugmentaObject AugmentaObject);
 	FLiveLinkAugmentaObject DeserializeBinaryAugmentaObject(const TArray<uint8> EventData);
+
+	TArray<uint8> SerializeBinaryObjectId(const int32 ObjectId);
+	int32 DeserializeBinaryObjectId(const TArray<uint8> EventData);
 
 	IDisplayClusterClusterManager* ClusterManager;
 
