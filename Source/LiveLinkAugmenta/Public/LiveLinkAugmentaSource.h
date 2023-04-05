@@ -199,6 +199,7 @@ private:
 	FLiveLinkAugmentaVideoOutput AugmentaVideoOutput;
 
 	// OSC Parsing
+	void HandleReceivedMessage(const OSCPP::Server::Packet& Packet);
 	void HandleOSCPacket(const OSCPP::Server::Packet& Packet);
 	void ReadAugmentaObjectFromOSC(FLiveLinkAugmentaObject* AugmentaObject, OSCPP::Server::ArgStream* Args);
 	void UpdateAugmentaObjectExtraFromOSC(OSCPP::Server::ArgStream* Args);
