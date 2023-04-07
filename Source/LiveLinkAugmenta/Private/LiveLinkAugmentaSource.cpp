@@ -147,9 +147,9 @@ void FLiveLinkAugmentaSource::Start()
 	FCoreDelegates::OnEndFrame.Remove(DeferredStartDelegateHandle);
 	DeferredStartDelegateHandle.Reset();
 
-	SourceStatus = LOCTEXT("SourceStatus_Receiving", "Receiving");
+	SourceStatus = LOCTEXT("SourceStatus_Listening", "Listening");
 
-	ThreadName = "LiveLinkAugmenta Receiver ";
+	ThreadName = "LiveLinkAugmenta Receiver";
 	ThreadName.AppendInt(FAsyncThreadIndex::GetNext());
 
 	Thread = FRunnableThread::Create(this, *ThreadName, 128 * 1024, TPri_AboveNormal, FPlatformAffinity::GetPoolThreadMask());
@@ -176,12 +176,18 @@ uint32 FLiveLinkAugmentaSource::Run()
 				{
 					if (ReceivedDataSize > 0)
 					{
-						//UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received Augmenta message size %d"), ReceivedDataSize);
+						SourceStatus = LOCTEXT("SourceStatus_Receiving", "Receiving");
+						LastReceivedMessageTime = FDateTime::Now();
 
 						HandleReceivedMessage(OSCPP::Server::Packet(ReceiveBuffer.GetData(), ReceivedDataSize));
 					}
 				}
 			}
+		}
+
+		if ((FDateTime::Now() - LastReceivedMessageTime).GetTotalSeconds() > ReceivingStatusTimeout)
+		{
+			SourceStatus = LOCTEXT("SourceStatus_Listening", "Listening");
 		}
 	}
 	
@@ -268,28 +274,27 @@ void FLiveLinkAugmentaSource::HandleReceivedMessage(const OSCPP::Server::Packet&
 		TArray<FString> AddressArgs;
 		Address.ParseIntoArray(AddressArgs, TEXT("/"), true);
 
-		if (AddressArgs.Num() < 2)
+		if (IsAugmentaMessageValid(AddressArgs))
 		{
-			// Simply print unknown messages
-			UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message."));
-			return;
-		} else
-		{
-			if (AddressArgs[0] == "scene")
+			if (AddressArgs[1] == "scene")
 			{
 				//Parse scene bundle
 				ParseSceneBundle(Bundle);
 			}
-			else if (AddressArgs[0] == "frame")
+			else if (AddressArgs[1] == "frame")
 			{
 				//Parse objects bundle
 				ParseObjectsBundle(Bundle);
 			}
 		}
+		else
+		{
+			SourceStatus = LOCTEXT("SourceStatus_IncorrectProtocol", "Incorrect Protocol Received");
+		}
 
 	} else {
 
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received OSC packet while expecting OSC bundle. Please ensure you are sending Augmenta OSC V3 data."));
+		SourceStatus = LOCTEXT("SourceStatus_IncorrectProtocol", "Incorrect Protocol Received");
 	}
 }
 
@@ -336,61 +341,60 @@ void FLiveLinkAugmentaSource::ParseScenePacket(const OSCPP::Server::Packet& Pack
 	Address.ParseIntoArray(AddressArgs, TEXT("/"), true);
 
 	//Ensure address is correct
-	if (AddressArgs.Num() < 2)
+	if (IsAugmentaMessageValid(AddressArgs))
 	{
-		// Simply print unknown messages
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message."));
-
-	} else
-	{
-		if (AddressArgs[1] == "clear")
+		if (AddressArgs[2] == "clear")
 		{
 			RemoveAllObjects();
 		}
-		else if (AddressArgs[1] == "pos")
+		else if (AddressArgs[2] == "pos")
 		{
 			AugmentaScene.Position.X = Args.float32();
 			AugmentaScene.Position.Y = Args.float32();
 			AugmentaScene.Position.Z = Args.float32();
 		}
-		else if (AddressArgs[1] == "size")
+		else if (AddressArgs[2] == "size")
 		{
 			AugmentaScene.Size.X = Args.float32();
 			AugmentaScene.Size.Y = Args.float32();
 			AugmentaScene.Size.Z = Args.float32();
 		}
-		else if (AddressArgs[1] == "video")
+		else if (AddressArgs[2] == "video" && AddressArgs.Num() >= 4)
 		{
-			if (AddressArgs[2] == "pos")
+			if (AddressArgs[3] == "pos")
 			{
 				AugmentaScene.VideoPosition.X = Args.float32();
 				AugmentaScene.VideoPosition.Y = Args.float32();
 				AugmentaScene.VideoPosition.Z = Args.float32();
 			}
-			else if (AddressArgs[2] == "size")
+			else if (AddressArgs[3] == "size")
 			{
 				AugmentaScene.VideoSize.X = Args.float32();
 				AugmentaScene.VideoSize.Y = Args.float32();
 				AugmentaScene.VideoSize.Z = Args.float32();
 			}
-			else if (AddressArgs[2] == "res")
+			else if (AddressArgs[3] == "res")
 			{
 				AugmentaScene.VideoResolution.X = Args.int32();
 				AugmentaScene.VideoResolution.Y = Args.int32();
 			}
 		}
 	}
+	else
+	{
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message with address %s."), *Address);
+	}
 }
 
 void FLiveLinkAugmentaSource::ParseObjectsBundle(const OSCPP::Server::Bundle& Bundle)
 {
-	// Save current object list
-	TArray<int> PreviousObjectsIds;
-	AugmentaObjects.GetKeys(PreviousObjectsIds);
+	// Remove objects that left
+	RemoveObjectsThatLeft(Bundle);
 
-	UpdatedObjectsIds.Empty();
+	// Clear new objects list to use it to record updated objects ids
+	ReceivedObjectsIds.Empty();
 
-	// Get packet stream
+	// Parse all packets
 	OSCPP::Server::PacketStream Packets(Bundle.packets());
 
 	// Iterate over all the packets and call ParseObjectsPacket recursively.
@@ -399,24 +403,19 @@ void FLiveLinkAugmentaSource::ParseObjectsBundle(const OSCPP::Server::Bundle& Bu
 		ParseObjectsPacket(Packets.next());
 	}
 
-	//Compare previous object list and current one and send corresponding Augmenta events
-	for (const auto& Id : UpdatedObjectsIds) {
-		if(PreviousObjectsIds.Contains(Id))
+	//Compare current object list and received one and send corresponding Augmenta events
+	for (const auto& Id : ReceivedObjectsIds) {
+		if(CurrentObjectsIds.Contains(Id))
 		{
 			//Updated object
 			UpdateAugmentaObject(AugmentaObjects[Id]);
 
-			PreviousObjectsIds.Remove(Id);
 		} else
 		{
 			//Created object
+			CurrentObjectsIds.Add(Id);
 			AddAugmentaObject(AugmentaObjects[Id]);
 		}
-	}
-
-	for (const auto& Id : PreviousObjectsIds) {
-		//Removed object
-		RemoveAugmentaObject(Id);
 	}
 }
 
@@ -429,27 +428,21 @@ void FLiveLinkAugmentaSource::ParseObjectsPacket(const OSCPP::Server::Packet& Pa
 	OSCPP::Server::ArgStream Args(Message.args());
 
 	const FString Address = Message.address();
-
 	TArray<FString> AddressArgs;
 	Address.ParseIntoArray(AddressArgs, TEXT("/"), true);
 
 	//Ensure address is correct
-	if (AddressArgs.Num() < 2)
-	{
-		// Simply print unknown messages
-		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message."));
-
-	}
-	else
+	if (IsAugmentaMessageValid(AddressArgs))
 	{
 		//Every address in the objects bundle is supposed to start by "frame" or an object id
-		if (AddressArgs[0] != "frame")
+		if (AddressArgs[1] != "frame")
 		{
 			//Current object id
-			const int Id = FCString::Atoi(*AddressArgs[0]);
+			const int Id = FCString::Atoi(*AddressArgs[1]);
 
-			//Create object if not existing
-			if(!AugmentaObjects.Contains(Id))
+			//Create Augmenta object if not existing
+			//Current object id is not updated at this point, it will be after all parsing is done in ParseObjectsBundle
+			if (!AugmentaObjects.Contains(Id))
 			{
 				FLiveLinkAugmentaObject NewAugmentaObject;
 				NewAugmentaObject.Id = Id;
@@ -457,60 +450,134 @@ void FLiveLinkAugmentaSource::ParseObjectsPacket(const OSCPP::Server::Packet& Pa
 				AugmentaObjects.Emplace(Id, NewAugmentaObject);
 			}
 
-			//Add id to list of updated Ids
-			if(!UpdatedObjectsIds.Contains(Id))
+			//Add id to list of received Ids
+			if (!ReceivedObjectsIds.Contains(Id))
 			{
-				UpdatedObjectsIds.Add(Id);
+				ReceivedObjectsIds.Add(Id);
 			}
 
 			//Check message content
-			if(AddressArgs[1] == "uid")
+			if (AddressArgs[2] == "uid")
 			{
 				AugmentaObjects[Id].Uid = Args.int32();
 			}
-			else if (AddressArgs[1] == "pos" && AddressArgs[2] == "abs")
+			else if (AddressArgs[2] == "pos")
 			{
 				AugmentaObjects[Id].CentroidPosition.X = Args.float32();
 				AugmentaObjects[Id].CentroidPosition.Y = Args.float32();
 				AugmentaObjects[Id].CentroidPosition.Z = Args.float32();
+
+				AugmentaObjects[Id].Position = AugmentaObjects[Id].CentroidPosition;
 			}
-			else if (AddressArgs[1] == "height")
+			else if (AddressArgs[2] == "height")
 			{
 				AugmentaObjects[Id].Height = Args.float32();
 
-				if(bApplyObjectHeight)
+				if (bApplyObjectHeight)
 				{
 					AugmentaObjects[Id].CentroidPosition.Z += AugmentaObjects[Id].Height * .5f;
+					AugmentaObjects[Id].Position.Z += AugmentaObjects[Id].Height * .5f;
 				}
 			}
-			else if (AddressArgs[1] == "weight")
+			else if (AddressArgs[2] == "weight")
 			{
 				AugmentaObjects[Id].Confidence = Args.float32();
 			}
-			else if (AddressArgs[1] == "box")
+			else if (AddressArgs[2] == "box" && AddressArgs.Num() >= 4)
 			{
-				if(AddressArgs[2] == "angle")
+				if (AddressArgs[3] == "angle")
 				{
 					AugmentaObjects[Id].Rotation = FQuat(FRotator(0, Args.float32(), 0));
 				}
-				else if (AddressArgs[2] == "abs") 
+				else if (AddressArgs[3] == "pos")
 				{
-					AugmentaObjects[Id].BoxPosition.X = Args.float32();
-					AugmentaObjects[Id].BoxPosition.Y = Args.float32();
-					AugmentaObjects[Id].BoxPosition.Z = Args.float32();
+					if (bUseBoundingBox) {
+						AugmentaObjects[Id].Position.X = Args.float32();
+						AugmentaObjects[Id].Position.Y = Args.float32();
+						AugmentaObjects[Id].Position.Z = Args.float32();
 
-					if (bApplyObjectHeight)
-					{
-						AugmentaObjects[Id].BoxPosition.Z += AugmentaObjects[Id].Height * .5f;
+						if (bApplyObjectHeight)
+						{
+							AugmentaObjects[Id].Position.Z += AugmentaObjects[Id].Height * .5f;
+						}
 					}
-
-					AugmentaObjects[Id].Size.X = Args.float32();
-					AugmentaObjects[Id].Size.Y = Args.float32();
-					AugmentaObjects[Id].Size.Z = Args.float32();
+				}
+				else if (AddressArgs[3] == "size")
+				{
+					if (bUseBoundingBox) {
+						AugmentaObjects[Id].Size.X = Args.float32();
+						AugmentaObjects[Id].Size.Y = Args.float32();
+						AugmentaObjects[Id].Size.Z = Args.float32();
+					}
+					else
+					{
+						AugmentaObjects[Id].Size = FVector::OneVector;
+					}
 				}
 			}
-			
 		}
+	}
+	else
+	{
+		UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message with address %s."), *Address);
+	}
+}
+
+void FLiveLinkAugmentaSource::RemoveObjectsThatLeft(const OSCPP::Server::Bundle& Bundle)
+{
+	ReceivedObjectsIds.Empty();
+
+	OSCPP::Server::PacketStream Packets(Bundle.packets());
+
+	bool bFoundObjList = false;
+
+	// Iterate over all the packets to find the object list
+	while (!bFoundObjList && !Packets.atEnd()) {
+
+		// Convert to message
+		const OSCPP::Server::Message Message(Packets.next());
+
+		const FString Address = Message.address();
+		TArray<FString> AddressArgs;
+		Address.ParseIntoArray(AddressArgs, TEXT("/"), true);
+
+		//Ensure address is correct
+		if (IsAugmentaMessageValid(AddressArgs))
+		{
+			if (AddressArgs[1] == "frame" && AddressArgs[2] == "objlist")
+			{
+				// Get argument stream
+				OSCPP::Server::ArgStream Args(Message.args());
+
+				while (!Args.atEnd())
+				{
+					ReceivedObjectsIds.Add(Args.int32());
+				}
+
+				bFoundObjList = true;
+			}
+		}
+		else
+		{
+			UE_LOG(LogLiveLinkAugmenta, Log, TEXT("LiveLinkAugmentaSource: Received unknown OSC message with address %s."), *Address);
+		}
+	}
+
+	// Remove objects that are not in the received objects list
+	TArray<int32> IdsToRemove;
+
+	for (const auto& Id : CurrentObjectsIds) {
+		if(!ReceivedObjectsIds.Contains(Id))
+		{
+			IdsToRemove.Add(Id);
+		}
+	}
+
+	for(const auto& Id:IdsToRemove)
+	{
+		CurrentObjectsIds.Remove(Id);
+		AugmentaObjects.Remove(Id);
+		RemoveAugmentaObject(Id);
 	}
 }
 
@@ -611,7 +678,7 @@ void FLiveLinkAugmentaSource::UpdateAugmentaObjectSubject(FLiveLinkAugmentaObjec
 	FLiveLinkFrameDataStruct ObjectFrameData(FLiveLinkTransformFrameData::StaticStruct());
 	FLiveLinkTransformFrameData* ObjectTransformFrameData = ObjectFrameData.Cast<FLiveLinkTransformFrameData>();
 
-	ObjectTransformFrameData->Transform = FTransform(AugmentaObject.Rotation, bUseBoundingBox ? AugmentaObject.BoxPosition : AugmentaObject.CentroidPosition, bUseBoundingBox ? AugmentaObject.Size : FVector::OneVector);
+	ObjectTransformFrameData->Transform = FTransform(AugmentaObject.Rotation, AugmentaObject.Position, AugmentaObject.Size);
 
 	const FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(AugmentaObject.Id));
 	Send(&ObjectFrameData, CurrentName);
@@ -619,14 +686,17 @@ void FLiveLinkAugmentaSource::UpdateAugmentaObjectSubject(FLiveLinkAugmentaObjec
 
 void FLiveLinkAugmentaSource::RemoveAllObjects()
 {
-	TArray<int> IdsToRemove;
-
-	AugmentaObjects.GetKeys(IdsToRemove);
-	AugmentaObjects.Empty();
-
-	for (const auto& Id : IdsToRemove) {
+	for (const auto& Id : CurrentObjectsIds) {
 		RemoveAugmentaObject(Id);
 	}
+
+	AugmentaObjects.Empty();
+	CurrentObjectsIds.Empty();
+}
+
+bool FLiveLinkAugmentaSource::IsAugmentaMessageValid(TArray<FString>& AddressArgs)
+{
+	return (AddressArgs.Num() >= 3 && AddressArgs[0] == "aug");
 }
 
 #undef LOCTEXT_NAMESPACE

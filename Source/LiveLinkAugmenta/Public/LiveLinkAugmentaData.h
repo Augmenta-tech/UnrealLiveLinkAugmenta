@@ -37,15 +37,15 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaObject
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
 	FVector CentroidPosition = FVector::ZeroVector;
 
-	/** The absolute position of the bounding box of the object. */
+	/** The absolute position of the object. It is the bounding box position if the bounding box is used, the centroid position otherwise. */
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
-	FVector BoxPosition = FVector::ZeroVector;
+	FVector Position = FVector::ZeroVector;
 
 	/** The absolute rotation of the bounding box of the object. */
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
 	FQuat Rotation = FQuat::Identity;
 
-	/** The size of the bounding box of the object. */
+	/** The size of the bounding box of the object if the bounding box is used. Identity otherwise. */
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
 	FVector Size = FVector::OneVector;
 };

@@ -325,9 +325,9 @@ TMap<FString, FString> ALiveLinkAugmentaClusterManager::SerializeJsonAugmentaObj
 	EventData.Add("CentroidPosX", FString::SanitizeFloat(AugmentaObject.CentroidPosition.X));
 	EventData.Add("CentroidPosY", FString::SanitizeFloat(AugmentaObject.CentroidPosition.Y));
 	EventData.Add("CentroidPosZ", FString::SanitizeFloat(AugmentaObject.CentroidPosition.Z));
-	EventData.Add("BoxPosX", FString::SanitizeFloat(AugmentaObject.BoxPosition.X));
-	EventData.Add("BoxPosY", FString::SanitizeFloat(AugmentaObject.BoxPosition.Y));
-	EventData.Add("BoxPosZ", FString::SanitizeFloat(AugmentaObject.BoxPosition.Z));
+	EventData.Add("PosX", FString::SanitizeFloat(AugmentaObject.Position.X));
+	EventData.Add("PosY", FString::SanitizeFloat(AugmentaObject.Position.Y));
+	EventData.Add("PosZ", FString::SanitizeFloat(AugmentaObject.Position.Z));
 	EventData.Add("RotationX", FString::SanitizeFloat(AugmentaObject.Rotation.X));
 	EventData.Add("RotationY", FString::SanitizeFloat(AugmentaObject.Rotation.Y));
 	EventData.Add("RotationZ", FString::SanitizeFloat(AugmentaObject.Rotation.Z));
@@ -352,9 +352,9 @@ FLiveLinkAugmentaObject ALiveLinkAugmentaClusterManager::DeserializeJsonAugmenta
 	TmpString = *EventData.Find("CentroidPosX");		AugmentaObject.CentroidPosition.X = FCString::Atod(*TmpString);
 	TmpString = *EventData.Find("CentroidPosY");		AugmentaObject.CentroidPosition.Y = FCString::Atod(*TmpString);
 	TmpString = *EventData.Find("CentroidPosZ");		AugmentaObject.CentroidPosition.Z = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("BoxPosX");		AugmentaObject.BoxPosition.X = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("BoxPosY");		AugmentaObject.BoxPosition.Y = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("BoxPosZ");		AugmentaObject.BoxPosition.Z = FCString::Atod(*TmpString);
+	TmpString = *EventData.Find("PosX");		AugmentaObject.Position.X = FCString::Atod(*TmpString);
+	TmpString = *EventData.Find("PosY");		AugmentaObject.Position.Y = FCString::Atod(*TmpString);
+	TmpString = *EventData.Find("PosZ");		AugmentaObject.Position.Z = FCString::Atod(*TmpString);
 	TmpString = *EventData.Find("RotationX");		AugmentaObject.Rotation.X = FCString::Atod(*TmpString);
 	TmpString = *EventData.Find("RotationY");		AugmentaObject.Rotation.Y = FCString::Atod(*TmpString);
 	TmpString = *EventData.Find("RotationZ");		AugmentaObject.Rotation.Z = FCString::Atod(*TmpString);

@@ -164,6 +164,12 @@ private:
 	// Maximum rate at which to refresh the server
 	uint32 LocalUpdateRateInHz = 120;
 
+	// Receiving status message timeout in seconds
+	float ReceivingStatusTimeout = 1;
+
+	//Last received message time
+	FDateTime LastReceivedMessageTime;
+
 	// Offset object position vertically according to its height
 	bool bApplyObjectHeight;
 
@@ -187,11 +193,15 @@ private:
 	void ParseObjectsBundle(const OSCPP::Server::Bundle& Bundle);
 	void ParseObjectsPacket(const OSCPP::Server::Packet& Packet);
 
+	void RemoveObjectsThatLeft(const OSCPP::Server::Bundle& Bundle);
 	void AddAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
 	void UpdateAugmentaObject(FLiveLinkAugmentaObject AugmentaObject);
 	void RemoveAugmentaObject(int32 Id);
 	void UpdateAugmentaObjectSubject(FLiveLinkAugmentaObject AugmentaObject);
 	void RemoveAllObjects();
 
-	TArray<int> UpdatedObjectsIds;
+	bool IsAugmentaMessageValid(TArray<FString>& AddressArgs);
+
+	TArray<int32> CurrentObjectsIds;
+	TArray<int32> ReceivedObjectsIds;
 };

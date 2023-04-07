@@ -12,12 +12,12 @@
 
 FText ULiveLinkAugmentaSourceFactory::GetSourceDisplayName() const
 {
-	return LOCTEXT("SourceDisplayName", "LiveLinkAugmenta Source");	
+	return LOCTEXT("SourceDisplayName", "Live Link Augmenta Source");	
 }
 
 FText ULiveLinkAugmentaSourceFactory::GetSourceTooltip() const
 {
-	return LOCTEXT("SourceTooltip", "Allows creation of multiple LiveLink sources using the Augmenta protocol");
+	return LOCTEXT("SourceTooltip", "Allows creation of multiple Live Link sources using the Augmenta protocol");
 }
 
 TSharedPtr<SWidget> ULiveLinkAugmentaSourceFactory::BuildCreationPanel(FOnLiveLinkSourceCreated InOnLiveLinkSourceCreated) const
