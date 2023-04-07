@@ -17,12 +17,11 @@ An example project using this plugin can be found [here](https://github.com/Augm
 
 ## Implemented Features
 
-### OSC Protocol V2
-[V2 Wiki](https://github.com/Augmenta-tech/Augmenta/wiki/Data)
+### OSC Protocol V3
+[V3 Wiki](https://github.com/Augmenta-tech/Augmenta/wiki/Data)
 
 The Augmenta data is stored in the LiveLinkAugmentaSource :
 - The AugmentaScene contains the scene data.
-- The AugmentaVideoOutput contains the video output data.
 - The AugmentaObjects contains the augmenta objects data, stored in a TMap with the object id as key and AugmentaObject as value. 
 
 ### LiveLinkAugmentaSource
@@ -31,10 +30,8 @@ The Live Link Augmenta Source has the following parameters :
 
 | Parameter | Description |
 | --- | --- |
-| TimeoutDuration | An existing Augmenta object which has not been updated for this duration will be removed. |
-| ApplyObjectScale | If true, the Augmenta object bounding box size is used as the scale of the subject transform. |
+| UseBoundingBox | If true, the Augmenta object bounding box position and size are used as the position and scale of the subject transform. If false, the centroid position and a uniform size of 1 are used as the position and scale of the subject transform. |
 | ApplyObjectHeight | If true, the position of the subject is moved up by half the Augmenta object height (i.e. it is moved up so that the bottom of the bounding box is at the Augmenta scene level). |
-| OffsetObjectPositionOnCentroid | If true, the centroid of the Augmenta object is used for the subject transform position. Otherwise the bounding box center is used. This parameter is only used when ApplyObjectScale is true. If ApplyObjectScale is false, the subject transform position will always be the centroid of the Augmenta object. |
 | DisableSubjectsUpdate | Disable the creation and update of Live Link subjects from received Augmenta data to improve performance when they are not needed. |
 
 ## Usage
@@ -86,7 +83,6 @@ The exposed methods of the Augmenta manager are described below.
 | Method | Description |
 | --- | --- |
 | GetAugmentaScene | Returns a copy of the Augmenta scene. |
-| GetAugmentaVideoOutput | Returns a copy of the Augmenta video output. |
 | GetAugmentaObjects | Returns a copy of the Augmenta objects map. |
 | GetAugmentaObjectById | Returns a copy of an Augmenta object with a specific Id (if it exists). |
 | GetAugmentaObjectsCount | Returns the current number of Augmenta objects. |
@@ -96,7 +92,6 @@ The exposed events of the Augmenta manager are described below.
 | Event | Description |
 | --- | --- |
 | OnAugmentaSceneUpdated | Fired when the Augmenta scene is updated. |
-| OnAugmentaVideoOutputUpdated | Fired when the Augmenta video output is updated. |
 | OnAugmentaObjectEntered | Fired when a new Augmenta object entered the scene. |
 | OnAugmentaObjectUpdated | Fired when an Augmenta object as been updated. |
 | OnAugmentaObjectLeft | Fired when an Augmenta object left the scene. |
@@ -125,7 +120,6 @@ The Live Link Augmenta Cluster Manager has the following parameters :
 | AugmentaManager | The Augmenta manager to link this cluster manager to. |
 | UseBinaryClusterEvents | If true, Augmenta events are propagated to the cluster using binary cluster events, otherwise json cluster events are used. Binary cluster events are better for data throughput and latency. |
 | BinaryEventIdOffset | Binary cluster events are identified by a unique id (an integer). Different binary cluster events sharing the same id will lead to interpretation issues and potential crashes. The cluster manager use ids 0 to 5 by default, but they can be offsetted to prevent overlapping with other event ids using this parameter. |
-| SendReducedObjectData | If true, only the transform, id and age data of the Augmenta objects will be sent through cluster events to improve performance. This only works when using json cluster events. |
 
 ### Creating and loading Live Link presets
 
