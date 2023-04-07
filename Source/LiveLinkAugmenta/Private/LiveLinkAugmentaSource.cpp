@@ -318,6 +318,18 @@ void FLiveLinkAugmentaSource::ParseSceneBundle(const OSCPP::Server::Bundle& Bund
 
 		FName CurrentName = FName(SceneName.ToString() + "_Scene");
 		Send(&SceneFrameData, CurrentName);
+
+		if (AugmentaScene.VideoSize != FVector::ZeroVector)
+		{
+			//Update video subject
+			FLiveLinkFrameDataStruct VideoFrameData(FLiveLinkTransformFrameData::StaticStruct());
+			FLiveLinkTransformFrameData* VideoTransformFrameData = VideoFrameData.Cast<FLiveLinkTransformFrameData>();
+
+			VideoTransformFrameData->Transform = FTransform(FQuat::Identity, AugmentaScene.VideoPosition, AugmentaScene.VideoSize);
+
+			CurrentName = FName(SceneName.ToString() + "_Video");
+			Send(&VideoFrameData, CurrentName);
+		}
 	}
 
 	//Send scene updated event
