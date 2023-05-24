@@ -272,14 +272,6 @@ TMap<FString, FString> ALiveLinkAugmentaClusterManager::SerializeJsonAugmentaSce
 	EventData.Add("SizeY", FString::SanitizeFloat(AugmentaScene.Size.Y));
 	EventData.Add("SizeZ", FString::SanitizeFloat(AugmentaScene.Size.Z));
 
-	EventData.Add("VideoPosX", FString::SanitizeFloat(AugmentaScene.VideoPosition.X));
-	EventData.Add("VideoPosY", FString::SanitizeFloat(AugmentaScene.VideoPosition.Y));
-	EventData.Add("VideoPosZ", FString::SanitizeFloat(AugmentaScene.VideoPosition.Z));
-
-	EventData.Add("VideoSizeX", FString::SanitizeFloat(AugmentaScene.VideoSize.X));
-	EventData.Add("VideoSizeY", FString::SanitizeFloat(AugmentaScene.VideoSize.Y));
-	EventData.Add("VideoSizeZ", FString::SanitizeFloat(AugmentaScene.VideoSize.Z));
-
 	EventData.Add("VideoResX", FString::FromInt(AugmentaScene.VideoResolution.X));
 	EventData.Add("VideoResY", FString::FromInt(AugmentaScene.VideoResolution.Y));
 
@@ -290,21 +282,13 @@ FLiveLinkAugmentaScene ALiveLinkAugmentaClusterManager::DeserializeJsonAugmentaS
 {
 	FLiveLinkAugmentaScene AugmentaScene;
 
-	FString TmpString = *EventData.Find("PosX");	AugmentaScene.Position.X = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("PosY");	AugmentaScene.Position.Y = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("PosZ");	AugmentaScene.Position.Z = FCString::Atod(*TmpString);
+	FString TmpString = *EventData.Find("PosX"); AugmentaScene.Position.X = FCString::Atod(*TmpString);
+	TmpString = *EventData.Find("PosY"); AugmentaScene.Position.Y = FCString::Atod(*TmpString);
+	TmpString = *EventData.Find("PosZ");	 AugmentaScene.Position.Z = FCString::Atod(*TmpString);
 
-	TmpString = *EventData.Find("SizeX");	AugmentaScene.Size.X = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("SizeY");	AugmentaScene.Size.Y = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("SizeZ");	AugmentaScene.Size.Z = FCString::Atod(*TmpString);
-
-	TmpString = *EventData.Find("VideoPosX");	AugmentaScene.VideoPosition.X = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("VideoPosY");	AugmentaScene.VideoPosition.Y = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("VideoPosZ");	AugmentaScene.VideoPosition.Z = FCString::Atod(*TmpString);
-
-	TmpString = *EventData.Find("VideoSizeX"); AugmentaScene.VideoSize.X = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("VideoSizeY"); AugmentaScene.VideoSize.Y = FCString::Atod(*TmpString);
-	TmpString = *EventData.Find("VideoSizeZ"); AugmentaScene.VideoSize.Z = FCString::Atod(*TmpString);
+	TmpString = *EventData.Find("SizeX"); AugmentaScene.Size.X = FCString::Atod(*TmpString);
+	TmpString = *EventData.Find("SizeY"); AugmentaScene.Size.Y = FCString::Atod(*TmpString);
+	TmpString = *EventData.Find("SizeZ"); AugmentaScene.Size.Z = FCString::Atod(*TmpString);
 
 	TmpString = *EventData.Find("VideoResX"); AugmentaScene.VideoResolution.X = FCString::Atod(*TmpString);
 	TmpString = *EventData.Find("VideoResY"); AugmentaScene.VideoResolution.Y = FCString::Atod(*TmpString);
@@ -319,9 +303,8 @@ TMap<FString, FString> ALiveLinkAugmentaClusterManager::SerializeJsonAugmentaObj
 
 	EventData.Add("Id", FString::FromInt(AugmentaObject.Id));
 	EventData.Add("Uid", FString::FromInt(AugmentaObject.Uid));
-	//EventData.Add("Age", FString::SanitizeFloat(AugmentaObject.Age));
-	EventData.Add("Confidence", FString::SanitizeFloat(AugmentaObject.Confidence));
-	EventData.Add("Height", FString::SanitizeFloat(AugmentaObject.Height));
+	EventData.Add("Age", FString::SanitizeFloat(AugmentaObject.Age));
+	EventData.Add("Presence", FString::SanitizeFloat(AugmentaObject.Presence));
 	EventData.Add("CentroidPosX", FString::SanitizeFloat(AugmentaObject.CentroidPosition.X));
 	EventData.Add("CentroidPosY", FString::SanitizeFloat(AugmentaObject.CentroidPosition.Y));
 	EventData.Add("CentroidPosZ", FString::SanitizeFloat(AugmentaObject.CentroidPosition.Z));
@@ -346,9 +329,8 @@ FLiveLinkAugmentaObject ALiveLinkAugmentaClusterManager::DeserializeJsonAugmenta
 
 	FString TmpString = *EventData.Find("Id");	 AugmentaObject.Id = FCString::Atoi(*TmpString);
 	TmpString = *EventData.Find("Uid");	 AugmentaObject.Uid = FCString::Atoi(*TmpString);
-	//TmpString = *EventData.Find("Age"); AugmentaObject.Age = FCString::Atof(*TmpString);
-	TmpString = *EventData.Find("Confidence");		AugmentaObject.Confidence = FCString::Atof(*TmpString);
-	TmpString = *EventData.Find("Height");		AugmentaObject.Height = FCString::Atof(*TmpString);
+	TmpString = *EventData.Find("Age");  AugmentaObject.Age = FCString::Atof(*TmpString);
+	TmpString = *EventData.Find("Presence");		AugmentaObject.Presence = FCString::Atof(*TmpString);
 	TmpString = *EventData.Find("CentroidPosX");		AugmentaObject.CentroidPosition.X = FCString::Atod(*TmpString);
 	TmpString = *EventData.Find("CentroidPosY");		AugmentaObject.CentroidPosition.Y = FCString::Atod(*TmpString);
 	TmpString = *EventData.Find("CentroidPosZ");		AugmentaObject.CentroidPosition.Z = FCString::Atod(*TmpString);

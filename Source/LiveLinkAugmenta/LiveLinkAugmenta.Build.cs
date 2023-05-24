@@ -21,6 +21,7 @@ public class LiveLinkAugmenta : ModuleRules
 			}
 			);
 
+		//Dependencies preventing Mac compatibility
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{

@@ -96,8 +96,9 @@ void FLiveLinkAugmentaSource::InitializeSettings(ULiveLinkSourceSettings* Settin
 		SavedSourceSettings->SourceReference = this;
 
 		bApplyObjectHeight = SavedSourceSettings->bApplyObjectHeight;
-		bUseBoundingBox = SavedSourceSettings->bUseBoundingBox;
+		bApplyObjectSize = SavedSourceSettings->bApplyObjectSize;
 		bDisableSubjectsUpdate = SavedSourceSettings->bDisableSubjectsUpdate;
+		bAutoRemoveObjects = SavedSourceSettings->bAutoRemoveObjects;
 	}
 }
 
@@ -119,8 +120,9 @@ void FLiveLinkAugmentaSource::OnSettingsChanged(ULiveLinkSourceSettings* Setting
 		if (SourceSettings != nullptr)
 		{
 			bApplyObjectHeight = SavedSourceSettings->bApplyObjectHeight;
-			bUseBoundingBox = SavedSourceSettings->bUseBoundingBox;
+			bApplyObjectSize = SavedSourceSettings->bApplyObjectSize;
 			bDisableSubjectsUpdate = SavedSourceSettings->bDisableSubjectsUpdate;
+			bAutoRemoveObjects = SavedSourceSettings->bAutoRemoveObjects;
 		}
 	}
 }
@@ -188,6 +190,11 @@ uint32 FLiveLinkAugmentaSource::Run()
 		if ((FDateTime::Now() - LastReceivedMessageTime).GetTotalSeconds() > ReceivingStatusTimeout)
 		{
 			SourceStatus = LOCTEXT("SourceStatus_Listening", "Listening");
+
+			if(bAutoRemoveObjects)
+			{
+				RemoveAllObjects();
+			}
 		}
 	}
 	
@@ -212,44 +219,6 @@ void FLiveLinkAugmentaSource::Send(FLiveLinkFrameDataStruct* FrameDataToSend, FN
 	}
 
 	Client->PushSubjectFrameData_AnyThread({ SourceGuid, SubjectName }, MoveTemp(*FrameDataToSend));
-}
-
-/********************/
-/**** ACCESSORS *****/
-/********************/
-
-FName FLiveLinkAugmentaSource::GetSceneName()
-{
-	return SceneName;
-}
-
-FLiveLinkAugmentaScene FLiveLinkAugmentaSource::GetAugmentaScene()
-{
-	return AugmentaScene;
-}
-
-TMap<int, FLiveLinkAugmentaObject> FLiveLinkAugmentaSource::GetAugmentaObjects()
-{
-	return AugmentaObjects;
-}
-
-bool FLiveLinkAugmentaSource::GetAugmentaObjectById(FLiveLinkAugmentaObject& AugmentaObject, int Id)
-{
-	if(AugmentaObjects.Contains(Id))
-	{
-		AugmentaObject = AugmentaObjects[Id];
-	}
-	return false;
-}
-
-int FLiveLinkAugmentaSource::GetAugmentaObjectsCount()
-{
-	return AugmentaObjects.Num();
-}
-
-bool FLiveLinkAugmentaSource::ContainsId(int Id)
-{
-	return AugmentaObjects.Contains(Id);
 }
 
 /**********************/
@@ -318,18 +287,6 @@ void FLiveLinkAugmentaSource::ParseSceneBundle(const OSCPP::Server::Bundle& Bund
 
 		FName CurrentName = FName(SceneName.ToString() + "_Scene");
 		Send(&SceneFrameData, CurrentName);
-
-		if (AugmentaScene.VideoSize != FVector::ZeroVector)
-		{
-			//Update video subject
-			FLiveLinkFrameDataStruct VideoFrameData(FLiveLinkTransformFrameData::StaticStruct());
-			FLiveLinkTransformFrameData* VideoTransformFrameData = VideoFrameData.Cast<FLiveLinkTransformFrameData>();
-
-			VideoTransformFrameData->Transform = FTransform(FQuat::Identity, AugmentaScene.VideoPosition, AugmentaScene.VideoSize);
-
-			CurrentName = FName(SceneName.ToString() + "_Video");
-			Send(&VideoFrameData, CurrentName);
-		}
 	}
 
 	//Send scene updated event
@@ -359,36 +316,43 @@ void FLiveLinkAugmentaSource::ParseScenePacket(const OSCPP::Server::Packet& Pack
 		{
 			RemoveAllObjects();
 		}
+		else if (AddressArgs[2] == "maxNumObj")
+		{
+			AugmentaScene.MaxNumObj = Args.float32();
+
+			//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Scene maxNumObj = %f."), AugmentaScene.MaxNumObj);
+		}
 		else if (AddressArgs[2] == "pos")
 		{
-			AugmentaScene.Position.X = Args.float32();
-			AugmentaScene.Position.Y = Args.float32();
-			AugmentaScene.Position.Z = Args.float32();
+			AugmentaScene.Position.X = Args.float32() * 100;
+			AugmentaScene.Position.Y = Args.float32() * 100;
+			AugmentaScene.Position.Z = Args.float32() * 100;
+
+			//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Scene position = %s."), *AugmentaScene.Position.ToString());
+		}
+		else if (AddressArgs[2] == "rot")
+		{
+			const FVector EulerRotation = FVector(Args.float32(), Args.float32(), Args.float32());
+			AugmentaScene.Rotation = FQuat::MakeFromEuler(EulerRotation);
+
+			//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Scene rotation = %s."), *EulerRotation.ToString());
 		}
 		else if (AddressArgs[2] == "size")
 		{
 			AugmentaScene.Size.X = Args.float32();
 			AugmentaScene.Size.Y = Args.float32();
 			AugmentaScene.Size.Z = Args.float32();
+
+			//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Scene size = %s."), *AugmentaScene.Size.ToString());
 		}
 		else if (AddressArgs[2] == "video" && AddressArgs.Num() >= 4)
 		{
-			if (AddressArgs[3] == "pos")
-			{
-				AugmentaScene.VideoPosition.X = Args.float32();
-				AugmentaScene.VideoPosition.Y = Args.float32();
-				AugmentaScene.VideoPosition.Z = Args.float32();
-			}
-			else if (AddressArgs[3] == "size")
-			{
-				AugmentaScene.VideoSize.X = Args.float32();
-				AugmentaScene.VideoSize.Y = Args.float32();
-				AugmentaScene.VideoSize.Z = Args.float32();
-			}
-			else if (AddressArgs[3] == "res")
+			if (AddressArgs[3] == "res")
 			{
 				AugmentaScene.VideoResolution.X = Args.int32();
 				AugmentaScene.VideoResolution.Y = Args.int32();
+
+				//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Scene video res = %s."), *AugmentaScene.VideoResolution.ToString());
 			}
 		}
 	}
@@ -413,6 +377,30 @@ void FLiveLinkAugmentaSource::ParseObjectsBundle(const OSCPP::Server::Bundle& Bu
 	// Caution: Might lead to stack overflow!
 	while (!Packets.atEnd()) {
 		ParseObjectsPacket(Packets.next());
+	}
+
+	//Process received Augmenta objects once they have all been updated
+	for (const auto& Id : ReceivedObjectsIds) {
+
+		//Apply height offset
+		if (bApplyObjectHeight)
+		{
+			AugmentaObjects[Id].Position.Z += AugmentaObjects[Id].Size.Z * .5f * 100;
+		}
+
+		//Apply size
+		if (!bApplyObjectSize)
+		{
+			AugmentaObjects[Id].Size = FVector::OneVector;
+		}
+
+		//Apply scene to world transformation
+
+		//Rotation
+		AugmentaObjects[Id].Rotation *= AugmentaScene.Rotation;
+
+		//Position
+		AugmentaObjects[Id].Position += AugmentaScene.Position;
 	}
 
 	//Compare current object list and received one and send corresponding Augmenta events
@@ -472,59 +460,47 @@ void FLiveLinkAugmentaSource::ParseObjectsPacket(const OSCPP::Server::Packet& Pa
 			if (AddressArgs[2] == "uid")
 			{
 				AugmentaObjects[Id].Uid = Args.int32();
+
+				//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Object %d uid = %d."), Id, AugmentaObjects[Id].Uid);
 			}
 			else if (AddressArgs[2] == "pos")
 			{
-				AugmentaObjects[Id].CentroidPosition.X = Args.float32();
-				AugmentaObjects[Id].CentroidPosition.Y = Args.float32();
-				AugmentaObjects[Id].CentroidPosition.Z = Args.float32();
+				AugmentaObjects[Id].CentroidPosition.X = Args.float32() * 100;
+				AugmentaObjects[Id].CentroidPosition.Y = Args.float32() * 100;
+				AugmentaObjects[Id].CentroidPosition.Z = Args.float32() * 100;
 
-				AugmentaObjects[Id].Position = AugmentaObjects[Id].CentroidPosition;
+				//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Object %d Centroid = %s."), Id, *AugmentaObjects[Id].CentroidPosition.ToString());
 			}
-			else if (AddressArgs[2] == "height")
+			else if (AddressArgs[2] == "presence")
 			{
-				AugmentaObjects[Id].Height = Args.float32();
+				AugmentaObjects[Id].Presence = Args.float32();
 
-				if (bApplyObjectHeight)
-				{
-					AugmentaObjects[Id].CentroidPosition.Z += AugmentaObjects[Id].Height * .5f;
-					AugmentaObjects[Id].Position.Z += AugmentaObjects[Id].Height * .5f;
-				}
-			}
-			else if (AddressArgs[2] == "weight")
-			{
-				AugmentaObjects[Id].Confidence = Args.float32();
+				//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Object %d Presence = %f."), Id, AugmentaObjects[Id].Presence);
 			}
 			else if (AddressArgs[2] == "box" && AddressArgs.Num() >= 4)
 			{
-				if (AddressArgs[3] == "angle")
+				if (AddressArgs[3] == "rot")
 				{
-					AugmentaObjects[Id].Rotation = FQuat(FRotator(0, Args.float32(), 0));
+					const float Angle = Args.float32();
+					AugmentaObjects[Id].Rotation = FQuat(FRotator(0, Angle, 0));
+
+					//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Object %d Angle = %f."), Id, Angle);
 				}
 				else if (AddressArgs[3] == "pos")
 				{
-					if (bUseBoundingBox) {
-						AugmentaObjects[Id].Position.X = Args.float32();
-						AugmentaObjects[Id].Position.Y = Args.float32();
-						AugmentaObjects[Id].Position.Z = Args.float32();
+					AugmentaObjects[Id].Position.X = Args.float32() * 100;
+					AugmentaObjects[Id].Position.Y = Args.float32() * 100;
+					AugmentaObjects[Id].Position.Z = Args.float32() * 100;
 
-						if (bApplyObjectHeight)
-						{
-							AugmentaObjects[Id].Position.Z += AugmentaObjects[Id].Height * .5f;
-						}
-					}
+					//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Object %d Position = %s."), Id, *AugmentaObjects[Id].Position.ToString());
 				}
 				else if (AddressArgs[3] == "size")
 				{
-					if (bUseBoundingBox) {
-						AugmentaObjects[Id].Size.X = Args.float32();
-						AugmentaObjects[Id].Size.Y = Args.float32();
-						AugmentaObjects[Id].Size.Z = Args.float32();
-					}
-					else
-					{
-						AugmentaObjects[Id].Size = FVector::OneVector;
-					}
+					AugmentaObjects[Id].Size.X = Args.float32();
+					AugmentaObjects[Id].Size.Y = Args.float32();
+					AugmentaObjects[Id].Size.Z = Args.float32();
+
+					//UE_LOG(LogLiveLinkAugmenta, Warning, TEXT("LiveLinkAugmentaSource: Object %d Size = %s."), Id, *AugmentaObjects[Id].Size.ToString());
 				}
 			}
 		}
@@ -593,51 +569,6 @@ void FLiveLinkAugmentaSource::RemoveObjectsThatLeft(const OSCPP::Server::Bundle&
 	}
 }
 
-//void FLiveLinkAugmentaSource::ReadAugmentaObjectFromOSC(FLiveLinkAugmentaObject* AugmentaObject, OSCPP::Server::ArgStream* Args) {
-//
-//	AugmentaObject->Frame = Args->int32();
-//	AugmentaObject->Id = Args->int32();
-//	AugmentaObject->Oid = Args->int32();
-//	AugmentaObject->Age = Args->float32();
-//	AugmentaObject->Centroid.X = Args->float32();
-//	AugmentaObject->Centroid.Y = Args->float32();
-//	AugmentaObject->Velocity.X = Args->float32();
-//	AugmentaObject->Velocity.Y = Args->float32();
-//	AugmentaObject->Orientation = Args->float32();
-//	AugmentaObject->BoundingRectPos.X = Args->float32();
-//	AugmentaObject->BoundingRectPos.Y = Args->float32();
-//	AugmentaObject->BoundingRectSize.X = Args->float32();
-//	AugmentaObject->BoundingRectSize.Y = Args->float32();
-//	AugmentaObject->BoundingRectRotation = Args->float32();
-//	AugmentaObject->Height = Args->float32();
-//
-//	if (bApplyObjectScale && !bOffsetObjectPositionOnCentroid) {
-//		AugmentaObject->Position.X = (.5f - AugmentaObject->BoundingRectPos.Y) * AugmentaScene.Size.Y * MetersToUnrealUnits;
-//		AugmentaObject->Position.Y = (AugmentaObject->BoundingRectPos.X - .5f) * AugmentaScene.Size.X * MetersToUnrealUnits;
-//	}
-//	else {
-//		AugmentaObject->Position.X = (.5f - AugmentaObject->Centroid.Y) * AugmentaScene.Size.Y * MetersToUnrealUnits;
-//		AugmentaObject->Position.Y = (AugmentaObject->Centroid.X - .5f) * AugmentaScene.Size.X * MetersToUnrealUnits;
-//	}
-//
-//	AugmentaObject->Position.Z = bApplyObjectHeight ? AugmentaObject->Height * .5f * MetersToUnrealUnits : 0;
-//
-//	AugmentaObject->Position += AugmentaScene.Position;
-//
-//	AugmentaObject->Rotation = FQuat(FRotator(0, -AugmentaObject->BoundingRectRotation, 0));
-//
-//	if (bApplyObjectScale) {
-//		AugmentaObject->Scale.X = AugmentaObject->BoundingRectSize.Y * AugmentaScene.Size.Y;
-//		AugmentaObject->Scale.Y = AugmentaObject->BoundingRectSize.X * AugmentaScene.Size.X;
-//		AugmentaObject->Scale.Z = AugmentaObject->Height;
-//	}
-//	else {
-//		AugmentaObject->Scale = FVector::OneVector;
-//	}
-//
-//	AugmentaObject->LastUpdateTime = FDateTime::Now();
-//}
-
 void FLiveLinkAugmentaSource::AddAugmentaObject(FLiveLinkAugmentaObject AugmentaObject)
 {
 	if (!bDisableSubjectsUpdate) {
@@ -668,13 +599,11 @@ void FLiveLinkAugmentaSource::UpdateAugmentaObject(FLiveLinkAugmentaObject Augme
 
 void FLiveLinkAugmentaSource::RemoveAugmentaObject(int32 Id)
 {
-	if (!bDisableSubjectsUpdate) {
-		FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(Id));
+	FName CurrentName = FName(SceneName.ToString() + "_Object_" + FString::FromInt(Id));
 
-		if (EncounteredSubjects.Contains(CurrentName)) {
-			EncounteredSubjects.Remove(CurrentName);
-			Client->RemoveSubject_AnyThread({ SourceGuid, CurrentName });
-		}
+	if (EncounteredSubjects.Contains(CurrentName)) {
+		EncounteredSubjects.Remove(CurrentName);
+		Client->RemoveSubject_AnyThread({ SourceGuid, CurrentName });
 	}
 
 	//Send object left event
@@ -708,7 +637,45 @@ void FLiveLinkAugmentaSource::RemoveAllObjects()
 
 bool FLiveLinkAugmentaSource::IsAugmentaMessageValid(TArray<FString>& AddressArgs)
 {
-	return (AddressArgs.Num() >= 3 && AddressArgs[0] == "aug");
+	return (AddressArgs.Num() >= 3 && AddressArgs[0] == "au");
+}
+
+/********************/
+/**** ACCESSORS *****/
+/********************/
+
+FName FLiveLinkAugmentaSource::GetSceneName()
+{
+	return SceneName;
+}
+
+FLiveLinkAugmentaScene FLiveLinkAugmentaSource::GetAugmentaScene()
+{
+	return AugmentaScene;
+}
+
+TMap<int, FLiveLinkAugmentaObject> FLiveLinkAugmentaSource::GetAugmentaObjects()
+{
+	return AugmentaObjects;
+}
+
+bool FLiveLinkAugmentaSource::GetAugmentaObjectById(FLiveLinkAugmentaObject& AugmentaObject, int Id)
+{
+	if (AugmentaObjects.Contains(Id))
+	{
+		AugmentaObject = AugmentaObjects[Id];
+	}
+	return false;
+}
+
+int FLiveLinkAugmentaSource::GetAugmentaObjectsCount()
+{
+	return AugmentaObjects.Num();
+}
+
+bool FLiveLinkAugmentaSource::ContainsId(int Id)
+{
+	return AugmentaObjects.Contains(Id);
 }
 
 #undef LOCTEXT_NAMESPACE

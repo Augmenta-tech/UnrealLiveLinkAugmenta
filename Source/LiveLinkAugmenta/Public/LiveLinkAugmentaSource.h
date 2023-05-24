@@ -170,14 +170,17 @@ private:
 	//Last received message time
 	FDateTime LastReceivedMessageTime;
 
-	// Offset object position vertically according to its height
+	// Offset object position vertically according to the bounding box height
 	bool bApplyObjectHeight;
 
-	// Use bounding box size as object scale and bounding box position as object position
-	bool bUseBoundingBox;
+	// Use bounding box size as object scale
+	bool bApplyObjectSize;
 
 	// Disable the creation and update of Live Link subjects from received Augmenta data
 	bool bDisableSubjectsUpdate;
+
+	// Automatically remove Augmenta object if Augmenta messages are no longer received
+	bool bAutoRemoveObjects;
 
 	// Augmenta scene parameters
 	FName SceneName;

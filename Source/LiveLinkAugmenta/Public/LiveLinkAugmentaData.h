@@ -25,13 +25,10 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaObject
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
 	float Age = -1;
 
-	/** The confidence value of the object. */
+	/** The presence value of the object.
+	 0 means the point just arrived or left, 1 means the point is fully in the scene. */
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
-	float Confidence = 0;
-
-	/** The height of the Object (in m) (absolute). */
-	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
-	float Height = 0;
+	float Presence = 0;
 
 	/** The absolute position of the centroid of the object. */
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
@@ -45,7 +42,7 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaObject
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
 	FQuat Rotation = FQuat::Identity;
 
-	/** The size of the bounding box of the object if the bounding box is used. Identity otherwise. */
+	/** The size of the bounding box of the object. */
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Object")
 	FVector Size = FVector::OneVector;
 };
@@ -59,9 +56,17 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaScene
 {
 	GENERATED_BODY()
 
+	/** The maximum number of objects (or slots) in the scene. 0 = unlimited. */
+	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Scene")
+	float MaxNumObj = 0;
+
 	/** The scene absolute position. */
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Scene")
 	FVector Position = FVector::ZeroVector;
+
+	/** The scene rotation along Unreal axis. */
+	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Scene")
+	FQuat Rotation = FQuat::Identity;
 
 	/** The scene size along Unreal axis. */
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Scene")
@@ -70,12 +75,4 @@ struct LIVELINKAUGMENTA_API FLiveLinkAugmentaScene
 	/** The video output resolution in pixels. */
 	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Scene|Video")
 	FIntPoint VideoResolution = FIntPoint::ZeroValue;
-
-	/** The video output absolute position. */
-	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Scene|Video")
-	FVector VideoPosition = FVector::ZeroVector;
-
-	/** The video output size along Unreal axis. */
-	UPROPERTY(BlueprintReadWrite, Category = "Augmenta|Scene|Video")
-	FVector VideoSize = FVector::ZeroVector;
 };
