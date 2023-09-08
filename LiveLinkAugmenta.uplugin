@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.0",
-	"EngineVersion" : "5.2.0",
+	"EngineVersion" : "5.3.0",
 	"FriendlyName": "Live Link Augmenta",
 	"Description": "Live Link plugin for the Augmenta protocol",
 	"Category": "Other",

@@ -18,12 +18,7 @@ public class LiveLinkAugmenta : ModuleRules
 				"LiveLinkInterface",
 				"LiveLink",
 				"Messaging",
-			}
-			);
-
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
+				//Dependencies preventing Mac compatibility
 				"DisplayCluster"
 			}
 			);

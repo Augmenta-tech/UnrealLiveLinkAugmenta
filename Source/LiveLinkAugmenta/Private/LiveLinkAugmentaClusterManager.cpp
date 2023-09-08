@@ -4,7 +4,7 @@
 #include "LiveLinkAugmentaClusterManager.h"
 
 #include "Cluster/IDisplayClusterClusterManager.h"
-#include "DisplayCluster/Public/IDisplayCluster.h"
+#include "IDisplayCluster.h"
 
 // Sets default values
 ALiveLinkAugmentaClusterManager::ALiveLinkAugmentaClusterManager()
