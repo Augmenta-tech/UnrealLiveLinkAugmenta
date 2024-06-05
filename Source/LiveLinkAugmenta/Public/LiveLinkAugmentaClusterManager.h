@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "LiveLinkAugmenta.h"
 #include "LiveLinkAugmentaData.h"
+
 #include "Cluster/IDisplayClusterClusterEventListener.h"
 
 #include "CoreMinimal.h"
