@@ -1,6 +1,6 @@
 # [Augmenta](https://www.augmenta-tech.com) [Unreal](https://www.unrealengine.com) [Live Link](https://docs.unrealengine.com/5.0/en-US/live-link-in-unreal-engine/) Plugin
 
-This repo contains the Unreal Live Link Augmenta Plugin only. It is currently compiled with Unreal version **5.4**.
+This repo contains the Unreal Live Link Augmenta Plugin only, it is currently compiled with Unreal version **5.4**.
 
 Documentation available [here](https://docs.augmenta.tech)
 
