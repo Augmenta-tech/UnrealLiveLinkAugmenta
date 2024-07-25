@@ -4,7 +4,7 @@ Currently compiled with Unreal version **5.4**.
 
 Get the plugin : [Augmenta Unreal Live link plugin](https://www.unrealengine.com/marketplace/en-US/product/live-link-augmenta)
 
-Documentation and examples projects available [here](https://docs.augmenta.tech)
+Documentation and examples projects available [here](https://augmenta.notaku.site/create-content-with-our-integrations/unreal-engine)
 
 ## Installation (for development or PR purpose)
 
